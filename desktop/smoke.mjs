@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict';
+import { writeFile, readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
+import { resolve, sep, join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { Menu } from 'electron';
+
+export async function smokeTest({ app, window, ledger, root }) {
+  for (const filename of [process.env.LEDGER_DB_PATH, process.env.LEDGER_DESKTOP_PROFILE, process.env.LEDGER_DESKTOP_SCREENSHOT]) {
+    assert.ok(filename && resolve(filename).startsWith(resolve(tmpdir()) + sep), 'Desktop smoke tests require temporary data, profile and screenshot paths.');
+  }
+  const javascript = expression => window.webContents.executeJavaScript(expression);
+  async function until(expression) {
+    for (let attempt = 0; attempt < 200; attempt++) { if (await javascript(expression)) return; await delay(50); }
+    throw new Error('Desktop UI did not become ready: ' + expression);
+  }
+  await until(`document.querySelector('.desktop-app') && document.body.textContent.includes('Saved on this computer')`);
+  assert.equal(await javascript(`typeof window.require`), 'undefined');
+  assert.equal(window.webContents.getLastWebPreferences().sandbox, true);
+  assert.equal(window.webContents.getLastWebPreferences().contextIsolation, true);
+  assert.equal(window.webContents.getLastWebPreferences().nodeIntegration, false);
+  assert.equal(await javascript(`document.querySelector('.page-footer') === null`), true);
+  assert.equal(await javascript(`getComputedStyle(document.querySelector('.page-heading .eyebrow')).display`), 'none');
+  const views = Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items;
+  views.find(item => item.label === 'Courses & lectures').click();
+  await until(`document.querySelector('h1')?.textContent === 'Courses & lectures'`);
+  views.find(item => item.label === 'Overview').click();
+  await until(`document.querySelector('h1')?.textContent === 'Overview' && document.querySelector('.complete-button')`);
+  if (process.env.LEDGER_DESKTOP_SMOKE_PHASE === 'save') {
+    await javascript(`document.querySelector('.complete-button').click()`);
+    for (let attempt = 0; attempt < 100 && Object.keys(ledger.store.load().data.completed).length === 0; attempt++) await delay(50);
+  }
+  assert.equal(Object.keys(ledger.store.load().data.completed).length, 1);
+  await until(`document.querySelector('.complete-button.checked') && document.body.textContent.includes('Saved on this computer')`);
+  // A second launch focuses the same app and can request its settings page.
+  await promisify(execFile)(process.execPath, [join(root, 'desktop/main.mjs'), '--settings'], { env: process.env, timeout: 10_000 });
+  await until(`document.querySelector('h1')?.textContent === 'Term & settings'`);
+  const backupPath = join(resolve(process.env.LEDGER_DESKTOP_PROFILE), 'test-backup.json');
+  const downloaded = new Promise((done, reject) => {
+    window.webContents.session.once('will-download', (_event, item) => {
+      item.setSavePath(backupPath);
+      item.once('done', (_event, state) => state === 'completed' ? done() : reject(new Error('Backup download failed: ' + state)));
+    });
+  });
+  await javascript(`Array.from(document.querySelectorAll('button')).find(button => button.textContent.includes('Export backup')).click()`);
+  await Promise.race([downloaded, delay(10_000).then(() => { throw new Error('Backup download timed out.'); })]);
+  const backup = JSON.parse(await readFile(backupPath, 'utf8'));
+  assert.deepEqual(backup.data, ledger.store.load().data);
+  views.find(item => item.label === 'Overview').click();
+  await until(`document.querySelector('h1')?.textContent === 'Overview'`);
+  await delay(100);
+  await writeFile(process.env.LEDGER_DESKTOP_SCREENSHOT, (await window.webContents.capturePage()).toPNG());
+  // Renderer navigation must not replace the tracker with arbitrary remote content.
+  await javascript(`window.location.href = 'https://example.com/'`);
+  await delay(100);
+  assert.equal(window.webContents.getURL(), ledger.origin + '/');
+  await javascript(`window.__holdClose = event => event.preventDefault(); window.addEventListener('beforeunload', window.__holdClose)`);
+  app.quit();
+  await delay(150);
+  assert.equal(window.isDestroyed(), false, 'A pending save must keep the window open.');
+  assert.equal(ledger.server.listening, true, 'The database/API must remain usable when closing is prevented.');
+  await javascript(`window.removeEventListener('beforeunload', window.__holdClose); delete window.__holdClose`);
+  console.log('LEDGER_DESKTOP_SMOKE_RESULT ' + JSON.stringify({ origin: ledger.origin, revision: ledger.store.load().revision, completed: 1, node: process.versions.node }));
+  if (process.env.LEDGER_DESKTOP_SMOKE_PHASE === 'save') await javascript(`document.querySelector('.quit-app').click()`);
+  else window.close();
+}

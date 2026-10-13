@@ -11,7 +11,7 @@ export function prepareBuild() {
     if (result.error) throw result.error;
     if (result.status !== 0) throw new Error(`App preparation failed (${args.join(' ')}). Fix the error above and try again.`);
   }
-  if (!existsSync(join(root, 'node_modules/vite/package.json'))) runNpm(['ci', '--no-audit', '--no-fund']);
+  if (!existsSync(join(root, 'node_modules/vite/package.json')) || !existsSync(join(root, 'node_modules/electron/path.txt'))) runNpm(['ci', '--no-audit', '--no-fund']);
   const hash = createHash('sha256');
   function add(filename) { hash.update(filename); hash.update(readFileSync(join(root, filename))); }
   function tree(directory) {
@@ -20,11 +20,11 @@ export function prepareBuild() {
       if (entry.isDirectory()) tree(name); else if (entry.isFile()) add(name);
     }
   }
-  for (const folder of ['app', 'lib', 'src', 'public']) tree(folder);
-  for (const filename of ['index.html', 'vite.config.ts', 'postcss.config.mjs', 'tsconfig.json', 'package.json', 'package-lock.json']) add(filename);
+  for (const folder of ['app', 'lib', 'src', 'public', 'server', 'desktop']) tree(folder);
+  for (const filename of ['index.html', 'vite.config.ts', 'vite.desktop.config.ts', 'postcss.config.mjs', 'tsconfig.json', 'package.json', 'package-lock.json']) add(filename);
   const fingerprint = hash.digest('hex');
   const marker = join(root, 'dist/.source-hash');
-  if (!existsSync(join(root, 'dist/index.html')) || !existsSync(marker) || readFileSync(marker, 'utf8') !== fingerprint) {
+  if (!existsSync(join(root, 'dist/index.html')) || !existsSync(join(root, 'desktop-dist/server.mjs')) || !existsSync(marker) || readFileSync(marker, 'utf8') !== fingerprint) {
     runNpm(['run', 'build']);
     writeFileSync(marker, fingerprint);
   }

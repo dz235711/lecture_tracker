@@ -111,11 +111,11 @@ test('stale state pointing at an unrelated server never shuts it down', { timeou
   } finally { await rm(app.state, { force: true }); await app.clean(); await other.close(); }
 });
 
-test('foreground startup can be stopped with stop.sh and Ctrl+C cleans up its state', { timeout: 90_000 }, async () => {
+test('foreground browser startup can be stopped with app.sh and Ctrl+C cleans up its state', { timeout: 90_000 }, async () => {
   const app = await fixture();
   let child;
   async function foreground() {
-    child = spawn(join(root, 'start.sh'), [], { cwd: root, env: app.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child = spawn(process.execPath, [join(root, 'scripts/start.mjs')], { cwd: root, env: app.env, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; }); child.stderr.on('data', chunk => { output += chunk; });
     const exit = new Promise(done => child.once('exit', code => done(code)));
@@ -128,7 +128,7 @@ test('foreground startup can be stopped with stop.sh and Ctrl+C cleans up its st
   }
   try {
     const ready = await foreground();
-    await execute(join(root, 'stop.sh'), [], { cwd: root, env: app.env, timeout: 20_000 });
+    await execute(join(root, 'app.sh'), ['stop'], { cwd: root, env: app.env, timeout: 20_000 });
     assert.equal(await ready.exit, 0);
     const interrupted = await foreground();
     child.kill('SIGINT');
@@ -144,9 +144,9 @@ test('desktop shortcut actions and graphical controls use the same persistent se
     await app.run('install-shortcut', desktop);
     const filename = join(desktop, 'Lecture Ledger.desktop');
     const entry = await readFile(filename, 'utf8');
-    assert.match(entry, /open --gui/);
-    assert.match(entry, /stop --gui/);
-    assert.match(entry, /port --gui/);
+    assert.match(entry, /desktop\.sh/);
+    assert.match(entry, /--quit/);
+    assert.match(entry, /--settings/);
     if (process.platform === 'linux') await execute('desktop-file-validate', [filename]);
     const unusual = join(app.folder, 'Ledger $folder % with spaces');
     await writeFile(filename, desktopEntry(unusual));

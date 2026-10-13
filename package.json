@@ -7,16 +7,20 @@
     "node": ">=24.15.0"
   },
   "scripts": {
-    "start": "node scripts/start.mjs",
-    "open": "node scripts/app.mjs open",
-    "stop": "node scripts/app.mjs stop",
+    "start": "node scripts/desktop.mjs",
+    "open": "node scripts/desktop.mjs",
+    "stop": "node scripts/desktop.mjs --quit",
     "status": "node scripts/app.mjs status",
     "port": "node scripts/app.mjs port",
     "dev": "node server/index.mjs --dev",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --config vite.desktop.config.ts",
     "test": "node scripts/test-model.mjs && node --test scripts/test-local-server.mjs scripts/test-app.mjs",
     "import": "node scripts/transfer.mjs import",
-    "export": "node scripts/transfer.mjs export"
+    "export": "node scripts/transfer.mjs export",
+    "browser": "node scripts/start.mjs",
+    "browser:open": "node scripts/app.mjs open",
+    "browser:stop": "node scripts/app.mjs stop",
+    "test:desktop": "node scripts/test-desktop.mjs"
   },
   "dependencies": {
     "lucide-react": "1.31.0",
@@ -24,14 +28,17 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "electron": "44.7.1",
+    "postcss": "8.5.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vite": "8.0.13",
-    "@tailwindcss/postcss": "4.2.1",
-    "postcss": "8.5.6"
-  }
+    "vite": "8.0.13"
+  },
+  "main": "desktop/main.mjs",
+  "productName": "Lecture Ledger"
 }

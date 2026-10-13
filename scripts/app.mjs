@@ -175,8 +175,8 @@ async function configurePort(gui, value) {
 export function desktopEntry(directory = root) {
   if (/[\n\r]/.test(directory)) throw new Error('The app folder cannot contain line breaks.');
   const quote = value => '"' + value.replace(/[%\\"`$]/g, character => character === '%' ? '%%' : '\\' + character) + '"';
-  const executable = quote(join(directory, 'app.sh'));
-  return `[Desktop Entry]\nType=Application\nName=Lecture Ledger\nComment=Open your local lecture tracker\nExec=${executable} open --gui\nIcon=${join(directory, 'public/favicon.svg')}\nTerminal=false\nCategories=Education;\nActions=Stop;Port;Manage;\nX-LectureLedger=true\n\n[Desktop Action Stop]\nName=Shut down\nExec=${executable} stop --gui\n\n[Desktop Action Port]\nName=Configure port\nExec=${executable} port --gui\n\n[Desktop Action Manage]\nName=App controls\nExec=${executable} menu\n`;
+  const executable = quote(join(directory, 'desktop.sh'));
+  return `[Desktop Entry]\nType=Application\nName=Lecture Ledger\nComment=Your local lecture tracker\nExec=${executable}\nIcon=${join(directory, 'public/favicon.svg')}\nTerminal=false\nCategories=Education;\nActions=Quit;Settings;\nX-LectureLedger=true\n\n[Desktop Action Quit]\nName=Quit Lecture Ledger\nExec=${executable} --quit\n\n[Desktop Action Settings]\nName=Term & settings\nExec=${executable} --settings\n`;
 }
 export function installShortcut(directory) {
   if (process.platform !== 'linux') throw new Error('Desktop shortcuts are available on Linux. Use npm run open and npm run stop on this computer.');
@@ -191,7 +191,7 @@ export function installShortcut(directory) {
     spawnSync('gio', ['set', target, 'metadata::trusted', 'true'], { stdio: 'ignore' });
     console.log(`Shortcut installed: ${target}`);
   }
-  console.log('Double-click Lecture Ledger to open it. Right-click for Shut down or Configure port. If your desktop asks, choose Allow Launching.');
+  console.log('Double-click Lecture Ledger to open the desktop app. Close its window or choose File → Quit to shut down. If your desktop asks, choose Allow Launching.');
   return targets;
 }
 export function reportError(error) {

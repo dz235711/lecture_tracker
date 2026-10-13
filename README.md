@@ -2,55 +2,54 @@
 
 A lecture and tutorial tracker that runs on your computer. Enter a term and one week's schedule; sessions repeat through the inclusive term end date. Your timetable and completion history live in a local SQLite file.
 
-## Start the app
+## Open the desktop app
 
-On this Linux computer, double-click the **Lecture Ledger** desktop shortcut. It starts the app in the background and opens your browser. You can close the terminal and browser without losing your timetable. Right-click the shortcut for **Shut down**, **Configure port**, or **App controls**. If the desktop asks, choose **Allow Launching** once.
+Double-click **Lecture Ledger** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Ledger** to shut it down. Opening it again focuses the existing window.
 
-To install the shortcut after cloning or moving this folder, run:
+Desktop mode keeps your existing timetable at `data/lecture-ledger.sqlite` in this checkout. It automatically selects an available internal port; there is no browser address or port setting to manage. Materials and recordings open in your usual browser so university sign-in works normally.
+
+The window has a compact app layout and native File, Edit, View and Help menus. **Ctrl+1/2/3** opens Overview, Courses & lectures and Catch up; **Ctrl+,** opens Term & settings; **Ctrl+Q** quits. Backup export uses a native Save dialog, and restore uses a file chooser. Current saves finish before the database closes.
+
+From this folder, `./open.sh`, `./start.sh` or `npm start` opens the desktop app; `./stop.sh` or `npm run stop` quits it. The shell scripts select Node.js 24.15 or newer from PATH or the runtime bundled on this computer. `LEDGER_NODE_BIN` can select a particular Node executable.
+
+To install or refresh the Linux shortcut after cloning or moving the folder:
 
 ```sh
 ./app.sh install-shortcut
 ```
 
-This adds the shortcut to your desktop and applications menu. Desktop controls use `zenity`, which is already available on this computer. You can also run `./app.sh` to choose **Open app**, **Shut down**, or **Configure port** from a small window.
+If your desktop asks, choose **Allow Launching** once. Some desktop file menus do not show application actions; closing the app or its File menu provides the controls directly.
 
-Terminal controls work from this folder:
+Startup installs missing dependencies and builds changed sources. The first setup downloads Electron and needs internet; subsequent starts work offline. Electron includes its own Node/Chromium runtime, while Node.js 24.15+ is used to prepare the source build. Background startup logs are in `.ledger/desktop.log`.
 
-```sh
-./open.sh          # Start in the background and open your browser
-./stop.sh          # Shut down the app
-./app.sh status   # Show whether it is running and its address
-```
-
-Opening again reuses the app that is already running. Shutdown waits for requests to finish, closes SQLite, and releases the port. It only controls the app launched from this checkout; it does not stop unrelated programs or the historical copy. Closing a browser tab alone keeps the server running.
-
-Startup installs dependencies and builds the app on the first run, and rebuilds after source changes. First installation needs an internet connection; later starts work offline with installed dependencies. Logs and private control state are in the ignored `.ledger/` folder; check `.ledger/server.log` if background startup fails. For a server running visibly in a terminal, use `./start.sh` and press Ctrl+C to stop it. `./stop.sh` also stops a server started that way.
-
-The script uses Node.js 24.15 or newer from your PATH, or the Node runtime already bundled on this computer. On another computer, install Node.js 24.15 or newer, clone the repository, and run:
+On another computer with Node.js 24.15 or newer:
 
 ```sh
 npm ci
-npm run open
-npm run stop
+npm start
 ```
 
-These commands work on Windows, macOS, and Linux with a suitable Node installation. `npm start` remains available for foreground startup. The shell scripts are available on Linux/macOS; desktop shortcuts and dialogs are Linux-specific. `LEDGER_NODE_BIN` can select a particular Node executable for the shell scripts.
+Electron supports Linux, macOS and Windows. The supplied desktop shortcuts are Linux-specific. This checkout launches from source; no distributable installer or automatic updater is included.
 
-## Port configuration
+## Optional browser mode and ports
 
-The preferred port is **3000**. If it is occupied, the app tries the next 20 ports and opens the address it actually uses. **Configure port** in the desktop controls saves your preference for future starts. The equivalent terminal command is:
+Browser hosting remains available for development or when preferred:
 
 ```sh
-./app.sh port 3001
+npm run browser         # Foreground server; Ctrl+C stops it
+npm run browser:open    # Background server and default browser
+npm run browser:stop    # Stop the browser server
+./app.sh status         # Browser server status/address
+./app.sh port 3001      # Save its preferred port
 ```
 
-The preference is saved locally in the ignored `ledger.config.json`. You can edit it directly; [ledger.config.example.json](ledger.config.example.json) shows the format. Ports must be whole numbers between 1 and 65535. Changing the preference takes effect after shutting down and opening the app again. Your database location stays the same when the port changes.
+Browser mode defaults to port 3000 and tries the next 20 ports if it is busy. The local preference is saved in ignored `ledger.config.json`; [ledger.config.example.json](ledger.config.example.json) shows the format. Ports must be whole numbers between 1 and 65535. A preference change takes effect at the next browser-server start. `PORT` overrides it for one run and requires that exact port. These settings do not affect desktop mode.
 
-`PORT=3001 ./open.sh` overrides the preference for one run and requires that exact port; it does not fall back or save a new preference. `npm run port -- 3001` saves a preference when using npm. `./app.sh status` shows the running address, including an automatically selected port.
+`./app.sh` with no arguments also opens the desktop app. The old `./app.sh menu` graphical menu controls optional browser hosting. Use the desktop window's own menus for normal app use. Browser runtime state/logs stay in `.ledger/`; no unrelated program is stopped. Desktop and browser modes use the same database by default, with revision checks preventing stale overwrites.
 
 ## Your data
 
-The default file is `data/lecture-ledger.sqlite`, relative to this repository. SQLite may also create `-wal` and `-shm` files beside it while the app runs. Closing the browser or stopping and restarting the app keeps your data. All browsers on this computer that use the same running app see the same timetable.
+The default file is `data/lecture-ledger.sqlite`, relative to this repository. SQLite may also create `-wal` and `-shm` files beside it while the app runs. Closing the desktop app or browser and reopening it keeps your data. All browsers on this computer that use the same running app see the same timetable.
 
 The app listens only on `127.0.0.1`. It uses no account login or cloud database. Once installed, the tracker runs entirely on your computer. Opening course materials or recordings still connects to the university websites and may require university sign-in.
 
@@ -59,7 +58,7 @@ The data directory, backups, installed dependencies, and generated build are exc
 For a database outside the repository, set `LEDGER_DB_PATH` to an absolute filename before starting. For example, on Linux/macOS:
 
 ```sh
-LEDGER_DB_PATH=/path/to/private-folder/lecture-ledger.sqlite ./start.sh
+LEDGER_DB_PATH=/path/to/private-folder/lecture-ledger.sqlite ./open.sh
 ```
 
 To transfer backups without opening the browser, with Node.js 24.15 or newer:
@@ -96,12 +95,14 @@ npm ci
 npm run dev
 npm test
 npm run build
+npm run test:desktop
 ```
 
-Development serves the app and API together, with live updates while editing. It reads the same preferred port and uses the same database by default; set `LEDGER_DB_PATH` to a different file for development with separate data. Stop a development server with Ctrl+C; desktop controls manage production startup. `npm start` serves the built app and automatically rebuilds when needed.
+Browser development serves the app and API together with live frontend updates. It reads the browser port preference and uses the same database by default; set `LEDGER_DB_PATH` to a separate file for development. Stop a development server with Ctrl+C. `npm start` rebuilds changed sources and opens the desktop app.
 
 - `npm test`: recurrence, end-time status transitions, DST, completion, supplied resource URL patterns, shared metadata, tags, old backup migration, local persistence across restarts, conflicting writes, rejected cross-origin writes, and private-file access. Launcher checks cover background/foreground startup, repeated and concurrent opens, shutdown, occupied ports, saved port preferences, invalid configuration, stale state, shortcut validity, dialog save/cancel flows, and persistence. Server and launcher tests use temporary databases and leave your timetable alone.
-- `npm run build`: TypeScript check and production frontend build.
+- `npm run build`: TypeScript check, production frontend and bundled Node backend for Electron.
+- `npm run test:desktop`: actual Electron renderer/menu/completion/persistence/shutdown checks with a temporary database/profile, plus navigation/link-policy checks. Requires a graphical Linux session (or an appropriate test display).
 
 Removing a course removes its sessions and their completion history after confirmation. Editing term dates retains completion records. Recording links open the date-filtered Panopto list rather than identifying a particular video; university sign-in and recording availability are handled by Scientia/Panopto. Overnight sessions should be entered as separate same-day sessions.
 
