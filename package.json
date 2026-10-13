@@ -8,9 +8,13 @@
   },
   "scripts": {
     "start": "node scripts/start.mjs",
+    "open": "node scripts/app.mjs open",
+    "stop": "node scripts/app.mjs stop",
+    "status": "node scripts/app.mjs status",
+    "port": "node scripts/app.mjs port",
     "dev": "node server/index.mjs --dev",
     "build": "tsc --noEmit && vite build",
-    "test": "node scripts/test-model.mjs && node --test scripts/test-local-server.mjs",
+    "test": "node scripts/test-model.mjs && node --test scripts/test-local-server.mjs scripts/test-app.mjs",
     "import": "node scripts/transfer.mjs import",
     "export": "node scripts/transfer.mjs export"
   },

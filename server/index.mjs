@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { AppError, openStore, root, maximumBodyBytes } from './store.mjs';
+import { portOptions } from './config.mjs';
 
 const mimeTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
 function sendJson(response, value, status = 200, headers = {}) {
@@ -20,7 +21,7 @@ async function readJson(request) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new AppError(400, 'The timetable could not be read.'); }
 }
-export async function startLedger({ port = 3000, databasePath, staticDirectory = resolve(root, 'dist'), development = false } = {}) {
+export async function startLedger({ port = 3000, databasePath, staticDirectory = resolve(root, 'dist'), development = false, control } = {}) {
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Choose a port between 0 and 65535.');
   const store = openStore(databasePath);
   const assetsRoot = resolve(staticDirectory);
@@ -36,6 +37,15 @@ export async function startLedger({ port = 3000, databasePath, staticDirectory =
       const origin = `http://${request.headers.host}`;
       const url = new URL(request.url || '/', origin);
       if (url.origin !== origin) throw new AppError(403, 'This request is not allowed.');
+      if (control && url.pathname.startsWith('/api/control/')) {
+        if (request.headers.authorization !== `Bearer ${control.token}` || request.headers['sec-fetch-site'] === 'cross-site') throw new AppError(403, 'This app control request is not allowed.');
+        if (url.pathname === '/api/control/status' && request.method === 'GET') { sendJson(response, { app: 'lecture-ledger', instance: control.token, databasePath: store.filename }); return; }
+        if (url.pathname === '/api/control/shutdown' && request.method === 'POST') {
+          response.once('finish', () => { void control.shutdown(); });
+          sendJson(response, { stopping: true }); return;
+        }
+        throw new AppError(404, 'This app control action does not exist.');
+      }
       if (url.pathname === '/api/planner') {
         if (request.method === 'GET') { sendJson(response, store.load()); return; }
         if (request.method === 'PUT') {
@@ -80,16 +90,36 @@ export async function startLedger({ port = 3000, databasePath, staticDirectory =
   const address = server.address();
   let closing;
   return { server, store, origin: `http://127.0.0.1:${address.port}`, close() {
-    if (!closing) closing = (async () => { await vite?.close(); await new Promise(done => { server.close(done); server.closeIdleConnections(); }); store.close(); })();
+    if (!closing) closing = (async () => {
+      await vite?.close();
+      await new Promise(done => {
+        const deadline = setTimeout(() => server.closeAllConnections(), 5000);
+        deadline.unref();
+        server.close(() => { clearTimeout(deadline); done(); });
+        server.closeIdleConnections();
+      });
+      store.close();
+    })();
     return closing;
   } };
 }
+export async function startConfiguredLedger(options = {}) {
+  const { port, fallback } = portOptions();
+  const lastPort = fallback ? Math.min(port + 20, 65535) : port;
+  for (let candidate = port; candidate <= lastPort; candidate++) {
+    try {
+      const app = await startLedger({ ...options, port: candidate });
+      if (candidate !== port) console.log(`Port ${port} is busy. Using port ${candidate} for this run.`);
+      return app;
+    } catch (error) { if (error.code !== 'EADDRINUSE' || candidate === lastPort) throw error; }
+  }
+}
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const development = process.argv.includes('--dev');
-  startLedger({ port: Number(process.env.PORT || 3000), development }).then(app => {
+  startConfiguredLedger({ development }).then(app => {
     console.log(`Lecture Ledger is running at ${app.origin}/`);
     console.log(`Data is saved in ${app.store.filename}`);
     const stop = async () => { await app.close(); process.exit(0); };
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
-  }).catch(error => { console.error(error.code === 'EADDRINUSE' ? 'That local port is in use. Choose another with PORT=3001 ./start.sh.' : error.message); process.exitCode = 1; });
+  }).catch(error => { console.error(error.code === 'EADDRINUSE' ? 'The local port is in use. Save another with ./app.sh port 3001, or use PORT=3001 for this run.' : error.message); process.exitCode = 1; });
 }

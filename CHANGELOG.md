@@ -4,6 +4,12 @@ These entries describe the work completed in this conversation. Commits contain 
 
 ## Unreleased
 
+Add desktop and applications-menu shortcuts that open the app in the background, with Shut down, Configure port and App controls actions. Add `open.sh`, `stop.sh`, graphical controls, status reporting and npm equivalents. Reuse an existing server, serialize simultaneous starts, recover abandoned launch locks, and authenticate shutdown against the current app instance without killing saved PIDs. Keep runtime state private and ignored by Git.
+
+Save a preferred port in local `ledger.config.json`; automatically try the next 20 ports when it is busy. Preserve the one-run `PORT` override with exact-port behaviour. Apply configuration to foreground, background and development startup. Share runtime selection and build preparation, and bound graceful shutdown when a client leaves a request unfinished. Port changes preserve the database location.
+
+Validation: `npm test` passed the model checks and all nine server/launcher tests, including persisted data across restart, port conflict fallback, repeated/concurrent opens, stale state and unrelated-server protection, foreground shutdown/Ctrl+C, invalid configuration, shortcut validation and mocked dialog save/cancel flows. `npm run build` passed TypeScript and the production build. Shell syntax checks and `git diff --check` passed. Installed desktop/applications shortcuts on this computer; native dialogs were not visually reviewed.
+
 Add the `.codex` Markdown project handoff and `AGENTS.md` instructions requiring context updates after codebase changes. Record the active Desktop checkout and user-configured GitHub remote, and update README context/repository guidance. Runtime behaviour and personal data are unchanged.
 
 Validation: documentation checked against source and Git history; `git diff --check`.

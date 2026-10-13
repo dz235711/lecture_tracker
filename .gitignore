@@ -1,6 +1,9 @@
 node_modules/
 dist/
 data/
+.ledger/
+ledger.config.json
+ledger.config.json.*.tmp
 work/
 *.sqlite
 *.sqlite-*

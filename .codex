@@ -71,33 +71,41 @@ Current package: `lecture-ledger-local`, version `1.0.0`, React 19, TypeScript, 
 | `src/main.tsx`, `index.html` | React entry point and document shell |
 | `server/index.mjs` | Loopback HTTP API, static frontend serving, Vite development middleware |
 | `server/store.mjs` | SQLite storage, revisions, validation, backup parsing |
-| `scripts/start.mjs`, `start.sh` | Dependency install/build when needed and local startup |
+| `scripts/app.mjs`, `app.sh`, `open.sh`, `stop.sh` | Background/foreground lifecycle, private instance controls, graphical menu, desktop shortcut installation |
+| `scripts/start.mjs`, `start.sh`, `scripts/node.sh`, `scripts/build.mjs` | Shared Node selection, initial dependency install/build, fingerprint-based rebuild and foreground startup |
+| `server/config.mjs`, `ledger.config.example.json` | Persisted preferred port, strict validation, environment precedence |
 | `scripts/transfer.mjs` | Command-line backup import/export |
 | `scripts/test-model.mjs` | Recurrence, status, URLs, validation and migration checks |
 | `scripts/test-local-server.mjs` | Isolated SQLite/API persistence and request checks |
+| `scripts/test-app.mjs` | Isolated launcher, port conflict, shutdown, persistence, concurrency and shortcut/dialog checks |
 | `README.md`, `CHANGELOG.md`, `.codex`, `AGENTS.md` | Setup, history, maintained context, coding instructions |
 
 The v2 planner contains `schemaVersion: 2`, a nullable term, courses, weekly lectures, and a completion map. Weekdays are Monday=0 through Sunday=6. Occurrences are generated from this planner rather than stored as individual database rows.
 
 SQLite stores one planner JSON record with a revision and update timestamp. Saves use compare-and-update revisions; stale tabs receive HTTP 409 instead of silently overwriting newer data. Existing v1 planners/backups upgrade while preserving lecture IDs and completion keys. Backup format is `{ format: 'lecture-ledger', version: 2, data: planner }`; restore accepts versions 1 and 2.
 
-Endpoints: `GET /api/planner` returns data/revision, `PUT /api/planner` saves validated data/revision, and `GET /api/backup` downloads JSON. The server binds only to `127.0.0.1`, checks allowed Host and write Origin, limits request bodies to 2 MB, and serves only the built frontend in production. Unknown API routes and attempts to access private files are rejected. There is one local planner, shared by browsers using the same server; this is not a multi-user account service.
+Endpoints: `GET /api/planner` returns data/revision, `PUT /api/planner` saves validated data/revision, and `GET /api/backup` downloads JSON. Managed production startup also enables `GET /api/control/status` and `POST /api/control/shutdown`; both require the current instance's random bearer token, which is stored only in private ignored runtime state. Cross-site control requests are rejected. Shutdown uses the authenticated instance rather than sending signals to a saved PID. The server binds only to `127.0.0.1`, checks allowed Host and write Origin, limits request bodies to 2 MB, and serves only the built frontend in production. Unknown API routes and attempts to access private files are rejected. There is one local planner, shared by browsers using the same server; this is not a multi-user account service.
 
 ## Running, storage, and backups
+
+On this Linux computer, desktop and applications-menu shortcuts are installed at `/home/dz/Desktop/Lecture Ledger.desktop` and `/home/dz/.local/share/applications/lecture-ledger.desktop`. Double-click to start in the background and open the browser; shortcut actions provide Shut down, Configure port and App controls. Some desktops require Allow Launching once. `./app.sh` opens a small control menu using the installed `zenity`. Reinstall shortcuts with `./app.sh install-shortcut` after moving/cloning the repository. Shortcut files contain the current checkout path and are generated outside Git.
 
 From the active repository:
 
 ```sh
-./start.sh
+./open.sh
+./stop.sh
+./app.sh status
+./app.sh port 3001
 ```
 
-Open `http://127.0.0.1:3000/`. Keep the server process running; Ctrl+C stops it, and the same command restarts it. Startup installs dependencies if absent and rebuilds the frontend when its source fingerprint changes. First installation needs internet; normal runs with installed dependencies work offline, except opening external university links.
+`open.sh` starts a detached server, opens its actual address in the default browser, and reuses an existing server from this checkout. Closing the terminal or browser does not stop it; `stop.sh` gracefully closes it and releases the port. `start.sh` remains the foreground alternative; Ctrl+C or `stop.sh` stops it. Simultaneous starts are serialized with a launch lock; abandoned locks recover when their owner process is gone. Runtime state and background logs are in the ignored `.ledger/` folder, with owner-only permissions. Status checks authenticate the running instance, and stale state cannot stop unrelated applications. Startup installs dependencies if absent and rebuilds the frontend when its source fingerprint changes. First installation needs internet; normal runs with installed dependencies work offline, except opening external university links.
 
-`start.sh` selects a suitable Node on PATH or the bundled Node on this computer. Optional `LEDGER_NODE_BIN` selects an executable. The bundled runtime used during development was `/home/dz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node` (24.19.0); the system Node was 20.20.0, so plain `npm` commands may require a suitable Node first. On other systems with Node 24.15+, use `npm ci` then `npm start`.
+The shell controls share suitable Node selection through `scripts/node.sh`: Node on PATH or the bundled Node on this computer. Optional `LEDGER_NODE_BIN` selects an executable. The bundled runtime used during development was `/home/dz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node` (24.19.0); the system Node was 20.20.0, so plain `npm` commands may require a suitable Node first. On other systems with Node 24.15+, use `npm ci`, `npm run open`, `npm run stop`, `npm run status`, or `npm start` for the foreground server. Desktop integration is Linux-specific.
 
-Defaults: port 3000 and `<repository>/data/lecture-ledger.sqlite`. `PORT` changes the port; `LEDGER_DB_PATH` selects a database (prefer an absolute filename). `npm run dev` provides live frontend updates and the API on the same port; it uses the same database unless overridden. Use a separate database for development/QA that modifies data.
+Defaults: preferred port 3000 and `<repository>/data/lecture-ledger.sqlite`. The desktop Configure port dialog or `./app.sh port 3001` saves the port in ignored `ledger.config.json` (see the tracked example). Whole-number ports 1–65535 are accepted. If the preferred port is occupied, foreground, background and development startup try the next 20 ports (capped at 65535). The preference remains unchanged; startup logs/status report the actual address. Changing the preference takes effect on next startup; reopening an existing server retains its current address. `PORT` takes precedence for one run and requires that exact port without fallback. `LEDGER_DB_PATH` selects a database (prefer an absolute filename); changing ports does not change the database. `npm run dev` provides live frontend updates and the API on the same port and reads the same port preference; stop it with Ctrl+C. Development is not managed by desktop controls. Use a separate database for development/QA that modifies data. Tests additionally use temporary `LEDGER_CONFIG_PATH` and `LEDGER_RUNTIME_DIR` overrides to isolate settings and runtime state.
 
-The database survives closing the browser and restarting the server. SQLite uses WAL and may create sidecar files. The database file has owner-only permissions on the tested Linux system. Data, sidecars, dependencies, build output, environment files, and conventionally named backups are ignored by Git. A source clone does not include the user's timetable.
+The database survives closing the browser and restarting the server. SQLite uses WAL and may create sidecar files. The database file has owner-only permissions on the tested Linux system. Data, sidecars, dependencies, build output, environment files, local port settings, private runtime state/logs, and conventionally named backups are ignored by Git. Shutdown lets requests finish, with a five-second limit for lingering HTTP connections, before closing SQLite. A source clone does not include the user's timetable.
 
 Export/restore in Term & settings or use:
 
@@ -114,6 +122,7 @@ Export refuses to overwrite a file; import refuses to replace a nonempty timetab
 2. Added shared courses, colours, course materials and date-filtered recording links, per-session tags, and legacy migration. Removed location and repeated course-code fields. Tested the supplied URLs, occurrence dates, migration and course/tutorial editing, including mobile layouts; deployed the update.
 3. At the user's request, converted to a standalone local app. Replaced hosted infrastructure with Vite/React plus a loopback Node/SQLite server, added startup/transfer scripts and setup docs, and tested persistence and request handling. Removed obsolete hosted/starter code from the current tree. Reconstructed the earlier source milestones into descriptive commits, removed the original hosting project identifier from those snapshots, tagged releases, and packaged a verified Git bundle.
 4. Confirmed the user's newly assigned Desktop project contains the app and clean Git history. The user connected its GitHub remote. Added this maintained Markdown handoff and a discoverable instruction file for future chats.
+5. Added managed background startup and browser opening, authenticated graceful shutdown, repeat/concurrent-open handling, graphical desktop controls and shortcut installation, persistent preferred ports, and automatic occupied-port fallback. Installed the shortcuts without starting or changing the personal planner. Added isolated lifecycle/configuration tests and refreshed setup/context/changelog documentation.
 
 Implementation milestones:
 
@@ -123,7 +132,7 @@ Implementation milestones:
 | `c8a2e73` | `v0.2.0` | Course grouping, shared materials/recordings, colours and tags |
 | `c70c76f` | `v1.0.0` | Local hosting and SQLite storage |
 
-These commits include change descriptions and validation. Later documentation commits should be read with `git log`; `c70c76f` is the implementation baseline, not necessarily the latest HEAD.
+These commits include change descriptions and validation. Later commits should be read with `git log`; `c70c76f` is the implementation baseline, not necessarily the latest HEAD.
 
 Original local handoff copy: `/home/dz/Documents/Codex/2026-10-13/build/outputs/lecture-ledger-local`. The original verified bundle is `/home/dz/Documents/Codex/2026-10-13/build/outputs/lecture-ledger-local.bundle`; it captures the three implementation milestones, not subsequent changes to the Desktop repository.
 
@@ -139,9 +148,12 @@ The completed local implementation passed `npm test` and `npm run build` (includ
 
 These results describe the previous implementation run. Re-run appropriate checks after relevant changes; avoid running the app or destructive QA against personal data unnecessarily. For documentation-only updates, review content and `git diff --check`; a new application build/test run is not needed.
 
-Known scope: manually started local server; single local planner; same-day weekly sessions; fixed materials path `2627`; recording links open filtered lists. No automatic server startup, multi-device synchronisation, holiday exceptions, or direct recording-video lookup was implemented. These are scope notes, not authorised new tasks.
+Current lifecycle validation: `npm test` passed the model checks and all nine API/launcher tests; `npm run build` passed TypeScript and production bundling. New tests cover background/foreground startup, restart persistence, repeat/concurrent opens, occupied preferred ports, exact-port environment override, invalid settings, abandoned locks, stale state/unrelated-server protection, unauthenticated/cross-site shutdown rejection, Ctrl+C, shortcut validation, mocked dialog save/cancel flows and bounded shutdown for unfinished requests. Shell syntax checks and `git diff --check` passed. Generated shortcuts were installed, executable and validated with `desktop-file-validate`. Native dialogs and default-browser opening were not visually reviewed; browser launch was suppressed in automated tests. Local bind tests required execution outside the network-restricted sandbox. The interrupted initial sandbox test attempt was not counted as passing; the successful full run used temporary databases/settings/runtime state.
+
+Known scope: user-launched local server with desktop controls; single local planner; same-day weekly sessions; fixed materials path `2627`; recording links open filtered lists. No login-time server startup, multi-device synchronisation, holiday exceptions, or direct recording-video lookup was implemented. Desktop dialogs require `zenity` and a graphical Linux session. Moving the repository requires reinstalling its shortcuts. Existing unmanaged servers from the historical copy must be stopped separately; controls intentionally do not stop them. These are scope notes, not authorised new tasks.
 
 ## Recent work
 
+- **13 October 2026 — app controls and ports:** implemented background browser launch, idempotent open/status, authenticated graceful shutdown, serialized starts and abandoned-lock recovery; retained foreground startup/Ctrl+C. Added Linux desktop/applications shortcuts and graphical Open/Shut down/Configure port controls. Persisted port preferences locally, added fallback through the next 20 ports, and retained exact one-run `PORT` overrides. Installed and validated both shortcuts; updated README/changelog. Validation: full `npm test` (model checks plus nine server/launcher tests), TypeScript/production build, shell syntax and Git whitespace checks passed using temporary data. Native GUI/browser visual review was not performed. The user's real SQLite database was not used for testing or modified. No push was performed.
 - **13 October 2026 — implementation:** completed the three milestones above; passed model/local API tests and production build; migrated the initial Autumn term; verified the local settings page; produced source Git history/tags and a portable bundle.
 - **13 October 2026 — project handoff:** verified the active Desktop repository and its configured GitHub remote; added `.codex` and `AGENTS.md` with the mandatory context maintenance rule; updated README repository/context references and the changelog. Documentation validation: reviewed source/history against this handoff and checked the Git diff. No runtime code or personal database changed.
