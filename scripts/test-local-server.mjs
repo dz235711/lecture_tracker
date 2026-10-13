@@ -11,7 +11,7 @@ const data = {
   schemaVersion: 2,
   term: { name: 'Autumn test', start: '2026-10-12', end: '2026-11-02', timezone: 'Europe/London' },
   courses: [{ id: 'qc-test', name: 'Quantum computing', number: '70021', folderId: '4394cd01-a3d6-489a-b98c-b49b011de184', color: 'violet' }],
-  lectures: [{ id: 'lecture-test', courseId: 'qc-test', title: 'Quantum lecture', day: 0, start: '09:00', end: '10:00', tags: [] }, { id: 'tutorial-test', courseId: 'qc-test', title: 'Problem class', day: 2, start: '10:00', end: '11:00', tags: ['Tutorial'] }],
+  lectures: [{ id: 'lecture-test', courseId: 'qc-test', day: 0, start: '09:00', end: '10:00', tags: [] }, { id: 'tutorial-test', courseId: 'qc-test', day: 2, start: '10:00', end: '11:00', tags: ['Tutorial'] }],
   completed: { 'lecture-test:2026-10-12': '2026-10-13T10:00:00Z' },
 };
 test('local storage persists across restarts and protects updates and private files', async () => {

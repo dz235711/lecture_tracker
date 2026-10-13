@@ -76,7 +76,9 @@ Each course stores a name, numeric Scientia course number, Imperial Panopto fold
 
 Course materials use `https://scientia.doc.ic.ac.uk/2627/modules/<course-number>/materials` as requested. Recording links use the shared Panopto folder and the occurrence's date for both `startDate` and `endDate`, formatted as `MM/DD/YYYY` and encoded with quoted values in the URL fragment. The folder field accepts either a raw folder ID or an Imperial Panopto URL.
 
-Weekly sessions have their own titles, weekdays, times, and comma-separated tags such as Tutorial, Lab, or Revision. The overview groups occurrences by course; the course page edits shared links and weekly sessions. Course numbers and location details are not repeated in the lecture view.
+Weekly sessions need only a course, weekday, start/end times and comma-separated tags such as Tutorial, Lab or Revision. There is no separate session-name field: the course and tags identify each session, with Lecture shown when tags are blank. Search uses course names and tags. The overview groups occurrences by course; the course page edits shared links and weekly sessions. Course numbers and location details are not repeated in the lecture view.
+
+Older saved session names remain as hidden compatibility metadata in existing records/backups. New sessions do not store a name. Editing tags keeps the session ID and every week's completion history; existing version-1 and version-2 backups remain accepted.
 
 ## Progress and persistence
 

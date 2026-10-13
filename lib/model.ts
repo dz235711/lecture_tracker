@@ -1,6 +1,7 @@
 export type Term = { name: string; start: string; end: string; timezone: string };
 export type Course = { id: string; name: string; number: string; folderId: string; color: string };
-export type Lecture = { id: string; courseId: string; title: string; day: number; start: string; end: string; tags: string[] };
+// Older planners may retain a title for backup compatibility; the UI uses course + tags.
+export type Lecture = { id: string; courseId: string; title?: string; day: number; start: string; end: string; tags: string[] };
 export type Planner = { schemaVersion: 2; term: Term | null; courses: Course[]; lectures: Lecture[]; completed: Record<string, string> };
 export type Occurrence = Lecture & { course: Course; color: string; key: string; date: string; startAt: number; endAt: number; status: 'upcoming' | 'unfinished' | 'completed' };
 type LegacyPlanner = { term: Term | null; lectures: { id: string; title: string; course: string; day: number; start: string; end: string; location: string; color: string }[]; completed: Record<string, string> };
@@ -8,6 +9,8 @@ export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sa
 export const COLORS = ['sage', 'violet', 'blue', 'rose', 'amber'];
 export const QUANTUM_COURSE = { name: 'Quantum computing', number: '70021', folderId: '4394cd01-a3d6-489a-b98c-b49b011de184' };
 export const emptyPlanner = (): Planner => ({ schemaVersion: 2, term: null, courses: [], lectures: [], completed: {} });
+export function sessionLabel(lecture: Pick<Lecture, 'tags'>) { return lecture.tags.join(', ') || 'Lecture'; }
+export function sessionDescription(lecture: Lecture, course: Course) { return `${course.name} · ${sessionLabel(lecture)} · ${DAYS[lecture.day]} ${lecture.start}–${lecture.end}`; }
 export function addDays(date: string, n: number) {
   const d = new Date(`${date}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10);
 }
@@ -58,7 +61,7 @@ export function occurrences(data: Planner, now: number): Occurrence[] {
       date = addDays(date, 7);
     }
   }
-  return out.sort((a, b) => a.startAt - b.startAt || a.title.localeCompare(b.title));
+  return out.sort((a, b) => a.startAt - b.startAt || a.course.name.localeCompare(b.course.name) || sessionLabel(a).localeCompare(sessionLabel(b)) || a.id.localeCompare(b.id));
 }
 const folderPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const idPattern = /^[a-zA-Z0-9-]{1,64}$/;
@@ -107,7 +110,7 @@ export function validatePlanner(value: unknown): value is Planner {
   }
   const ids = new Set<string>();
   for (const l of d.lectures) {
-    if (!l || typeof l.id !== 'string' || !idPattern.test(l.id) || ids.has(l.id) || !courseIds.has(l.courseId) || typeof l.title !== 'string' || !l.title.trim() || l.title.length > 100 || !Number.isInteger(l.day) || l.day < 0 || l.day > 6 || !Array.isArray(l.tags) || l.tags.length > 8 || l.tags.some(tag => typeof tag !== 'string' || !tag.trim() || tag.length > 30)) return false;
+    if (!l || typeof l.id !== 'string' || !idPattern.test(l.id) || ids.has(l.id) || !courseIds.has(l.courseId) || (l.title !== undefined && (typeof l.title !== 'string' || !l.title.trim() || l.title.length > 100)) || !Number.isInteger(l.day) || l.day < 0 || l.day > 6 || !Array.isArray(l.tags) || l.tags.length > 8 || l.tags.some(tag => typeof tag !== 'string' || !tag.trim() || tag.length > 30)) return false;
     if (![l.start, l.end].every(v => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)) || l.end <= l.start) return false;
     ids.add(l.id);
   }

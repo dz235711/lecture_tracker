@@ -4,6 +4,10 @@ These entries describe the work completed in this conversation. Commits contain 
 
 ## Unreleased
 
+Remove the session-name field and identify sessions by their course and tags throughout the overview, course editor, next-session card, search and accessible controls. Show Lecture for untagged sessions and add it as a tag suggestion. New sessions omit titles; retain older titles as hidden compatibility metadata without changing IDs, schedules or completion history. Sort simultaneous occurrences by course/tags/ID instead of requiring a title.
+
+Validation: model checks and all nine API/browser-launcher tests passed with temporary data, including sessions without titles, old-name compatibility, tag edits preserving completion keys and simultaneous sessions. TypeScript/frontend/backend build passed. Actual Electron checks passed editing an older session without a name field, creating a title-free session, completion/backup export, restart persistence and shutdown. Reviewed the captured tag-based layout and checked Git whitespace. The real database was not modified for QA.
+
 Make Electron 44.7.1 the default app experience. Open a dedicated window with native menus, keyboard shortcuts, a compact desktop layout and Quit control. Preserve the existing SQLite timetable; choose an available internal port automatically. Closing or quitting respects the renderer's pending-save guard, then closes SQLite and releases the port. Reopening focuses the existing instance; settings can be requested from a second launch. Course resources open in the usual browser; backup export uses a native save dialog.
 
 Bundle the Node backend for Electron, add an isolated preload bridge and renderer restrictions, and refresh desktop/applications shortcuts to launch the app. Correct the earlier right-click guidance: this user's desktop file menu does not expose application actions. Keep browser hosting and its port preferences available through explicit browser commands. Add a native PNG icon from the existing artwork and document source-based startup; distributable installers and auto-updates are outside this change.

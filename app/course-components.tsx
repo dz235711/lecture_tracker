@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { BookOpen, Plus, Pencil, Trash2, ExternalLink, Video, Repeat2, Check, Loader2, Sparkles } from 'lucide-react';
-import { COLORS, DAYS, QUANTUM_COURSE, materialsUrl, recordingsFolderUrl, parseFolderId, splitTags, type Course, type Lecture, type Occurrence, type Planner } from '../lib/model';
+import { COLORS, DAYS, QUANTUM_COURSE, materialsUrl, recordingsFolderUrl, parseFolderId, splitTags, sessionDescription, type Course, type Lecture, type Occurrence, type Planner } from '../lib/model';
 
 export function CourseLinks({ course, onConfigure }: { course: Course; onConfigure?: () => void }) {
   const materials = materialsUrl(course);
@@ -14,8 +14,7 @@ export function CourseLinks({ course, onConfigure }: { course: Course; onConfigu
   </div>;
 }
 export function Tags({ tags }: { tags: string[] }) {
-  if (!tags.length) return null;
-  return <span className="session-tags">{tags.map(tag => <span key={tag}>{tag}</span>)}</span>;
+  return <span className="session-tags">{(tags.length ? tags : ['Lecture']).map(tag => <span key={tag}>{tag}</span>)}</span>;
 }
 
 export function CoursesPanel({ data, all, busy, onAddCourse, onEditCourse, onDeleteCourse, onAddLecture, onEditLecture, onDeleteLecture }: {
@@ -32,7 +31,7 @@ export function CoursesPanel({ data, all, busy, onAddCourse, onEditCourse, onDel
       <div className="course-card-heading"><span className={`course-avatar ${course.color}`}><BookOpen size={22} /></span><div><h2>{course.name}</h2><p>{lectures.length} weekly session{lectures.length !== 1 ? 's' : ''}</p></div><div className="course-card-actions"><button className="icon-button" disabled={busy} onClick={() => onEditCourse(course)} aria-label={`Edit course ${course.name}`}><Pencil size={15} /></button><button className="icon-button" disabled={busy} onClick={() => onDeleteCourse(course)} aria-label={`Remove course ${course.name}`}><Trash2 size={15} /></button></div></div>
       <CourseLinks course={course} onConfigure={() => onEditCourse(course)} />
       <div className="course-progress-summary"><span><i className="status-dot unfinished" />{counts.unfinished} unfinished</span><span><i className="status-dot upcoming" />{counts.upcoming} upcoming</span><span><i className="status-dot completed" />{counts.completed} completed</span></div>
-      <div className="course-sessions">{lectures.length ? lectures.map(lecture => <div className="course-session" key={lecture.id}><div className="course-session-info"><h3>{lecture.title}</h3><Tags tags={lecture.tags} /><p><Repeat2 size={12} />{DAYS[lecture.day]} · {lecture.start}–{lecture.end}</p></div><div className="session-edit-actions"><button className="icon-button" disabled={busy} onClick={() => onEditLecture(lecture)} aria-label={`Edit session ${lecture.title} in ${course.name}`}><Pencil size={14} /></button><button className="icon-button" disabled={busy} onClick={() => onDeleteLecture(lecture)} aria-label={`Remove session ${lecture.title} in ${course.name}`}><Trash2 size={14} /></button></div></div>) : <div className="no-course-sessions">Add a weekly lecture or tutorial to start tracking this course.</div>}</div>
+      <div className="course-sessions">{lectures.length ? lectures.map(lecture => <div className="course-session" key={lecture.id}><div className="course-session-info"><Tags tags={lecture.tags} /><p><Repeat2 size={12} />{DAYS[lecture.day]} · {lecture.start}–{lecture.end}</p></div><div className="session-edit-actions"><button className="icon-button" disabled={busy} onClick={() => onEditLecture(lecture)} aria-label={`Edit session ${sessionDescription(lecture, course)}`}><Pencil size={14} /></button><button className="icon-button" disabled={busy} onClick={() => onDeleteLecture(lecture)} aria-label={`Remove session ${sessionDescription(lecture, course)}`}><Trash2 size={14} /></button></div></div>) : <div className="no-course-sessions">Add a weekly lecture or tutorial to start tracking this course.</div>}</div>
       <button className="course-add-session" disabled={busy || data.lectures.length >= 100} onClick={() => onAddLecture(course.id)}><Plus size={15} />Add weekly session</button>
     </section>;
   })}</div>;
@@ -76,15 +75,14 @@ export function LectureForm({ lecture, courses, termEnd, timezone, saving, error
     event.preventDefault();
     if (draft.end <= draft.start) { onError('The end time must be later than the start time.'); return; }
     if (tags.length > 8 || tags.some(tag => tag.length > 30)) { onError('Use up to 8 tags, with no more than 30 characters each.'); return; }
-    await onSave({ ...draft, title: draft.title.trim(), tags });
+    await onSave({ ...draft, tags });
   }
   return <form onSubmit={submit}>
-    <label className="field">Course<select required value={draft.courseId} onChange={e => setDraft({ ...draft, courseId: e.target.value })}>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-    <label className="field">Session name<input autoFocus required maxLength={100} value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="e.g. Weekly lecture or problem class" /></label>
+    <label className="field">Course<select autoFocus required value={draft.courseId} onChange={e => setDraft({ ...draft, courseId: e.target.value })}>{courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
     <label className="field">Day of the week<select value={draft.day} onChange={e => setDraft({ ...draft, day: Number(e.target.value) })}>{DAYS.map((day, i) => <option key={day} value={i}>{day}</option>)}</select></label>
     <div className="field-row"><label className="field">Start time<input type="time" required value={draft.start} onInput={e => setDraft({ ...draft, start: e.currentTarget.value })} onChange={e => setDraft({ ...draft, start: e.target.value })} /></label><label className="field">End time<input type="time" required value={draft.end} onInput={e => setDraft({ ...draft, end: e.currentTarget.value })} onChange={e => setDraft({ ...draft, end: e.target.value })} /></label></div>
-    <label className="field">Session tags <span className="optional">optional</span><input value={tagInput} onChange={e => setTagInput(e.target.value)} maxLength={255} placeholder="Tutorial, problem solving" /><span className="field-help">Separate tags with commas. Tags belong to this weekly session, so a tutorial can share a course with its lectures.</span></label>
-    <div className="suggested-tags">{['Tutorial', 'Lab', 'Seminar', 'Revision'].map(tag => <button type="button" key={tag} aria-pressed={tags.includes(tag)} className={tags.includes(tag) ? 'active' : ''} onClick={() => setTagInput((tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]).join(', '))}>{tags.includes(tag) ? <Check size={12} /> : <Plus size={12} />}{tag}</button>)}</div>
+    <label className="field">Session tags <span className="optional">optional</span><input value={tagInput} onChange={e => setTagInput(e.target.value)} maxLength={255} placeholder="Lecture, Tutorial, Lab" /><span className="field-help">Separate tags with commas. These identify the session within its course. Leave blank for a regular lecture.</span></label>
+    <div className="suggested-tags">{['Lecture', 'Tutorial', 'Lab', 'Seminar', 'Revision'].map(tag => <button type="button" key={tag} aria-pressed={tags.includes(tag)} className={tags.includes(tag) ? 'active' : ''} onClick={() => setTagInput((tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag]).join(', '))}>{tags.includes(tag) ? <Check size={12} /> : <Plus size={12} />}{tag}</button>)}</div>
     <p className="form-note"><Repeat2 size={15} />Repeats weekly until {termEnd} · {timezone.replaceAll('_', ' ')}</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className="modal-footer"><button type="button" className="button secondary" disabled={saving} onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}Save session</button></div>

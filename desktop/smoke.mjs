@@ -13,7 +13,7 @@ export async function smokeTest({ app, window, ledger, root }) {
   }
   const javascript = expression => window.webContents.executeJavaScript(expression);
   async function until(expression) {
-    for (let attempt = 0; attempt < 200; attempt++) { if (await javascript(expression)) return; await delay(50); }
+    for (let attempt = 0; attempt < 200; attempt++) { if (await javascript(`Boolean(${expression})`)) return; await delay(50); }
     throw new Error('Desktop UI did not become ready: ' + expression);
   }
   await until(`document.querySelector('.desktop-app') && document.body.textContent.includes('Saved on this computer')`);
@@ -26,8 +26,31 @@ export async function smokeTest({ app, window, ledger, root }) {
   const views = Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items;
   views.find(item => item.label === 'Courses & lectures').click();
   await until(`document.querySelector('h1')?.textContent === 'Courses & lectures'`);
+  assert.equal(await javascript(`document.body.textContent.includes('Quantum gates & circuits') || document.body.textContent.includes('Problem class')`), false);
+  if (process.env.LEDGER_DESKTOP_SMOKE_PHASE === 'save') {
+    // Editing an older session must keep its ID/history while dispensing with a name field.
+    const original = ledger.store.load().data.lectures.find(item => item.id === 'test-lecture');
+    await javascript(`document.querySelector('.session-edit-actions button[aria-label^="Edit"]').click()`);
+    await until(`document.querySelector('dialog[open] form')`);
+    assert.equal(await javascript(`document.querySelector('dialog').textContent.includes('Session name')`), false);
+    await javascript(`Array.from(document.querySelectorAll('.suggested-tags button')).find(button => button.textContent.includes('Lecture')).click()`);
+    await until(`document.querySelector('dialog input[placeholder="Lecture, Tutorial, Lab"]').value === 'Lecture'`);
+    await javascript(`document.querySelector('dialog form').requestSubmit()`);
+    await until(`!document.querySelector('dialog[open]') && document.body.textContent.includes('Saved on this computer')`);
+    const edited = ledger.store.load().data.lectures.find(item => item.id === original.id);
+    assert.equal(edited.title, original.title); assert.deepEqual(edited.tags, ['Lecture']);
+    await javascript(`document.querySelector('.course-add-session').click()`);
+    await until(`document.querySelector('dialog[open] form')`);
+    await javascript(`Array.from(document.querySelectorAll('.suggested-tags button')).find(button => button.textContent.includes('Lab')).click()`);
+    await until(`document.querySelector('dialog input[placeholder="Lecture, Tutorial, Lab"]').value === 'Lab'`);
+    await javascript(`document.querySelector('dialog form').requestSubmit()`);
+    await until(`!document.querySelector('dialog[open]') && document.body.textContent.includes('Saved on this computer')`);
+    const added = ledger.store.load().data.lectures.find(item => item.id !== 'test-lecture' && item.id !== 'test-tutorial');
+    assert.ok(added && !Object.hasOwn(added, 'title')); assert.deepEqual(added.tags, ['Lab']);
+  }
   views.find(item => item.label === 'Overview').click();
   await until(`document.querySelector('h1')?.textContent === 'Overview' && document.querySelector('.complete-button')`);
+  assert.equal(await javascript(`document.body.textContent.includes('Quantum gates & circuits') || document.body.textContent.includes('Problem class')`), false);
   if (process.env.LEDGER_DESKTOP_SMOKE_PHASE === 'save') {
     await javascript(`document.querySelector('.complete-button').click()`);
     for (let attempt = 0; attempt < 100 && Object.keys(ledger.store.load().data.completed).length === 0; attempt++) await delay(50);
