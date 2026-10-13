@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { getChatGPTUser } from '../../chatgpt-auth';
-import { emptyPlanner, validatePlanner } from '../../../lib/model';
+import { emptyPlanner, upgradePlanner, validatePlanner } from '../../../lib/model';
 export const dynamic = 'force-dynamic';
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 export async function GET() {
@@ -8,7 +8,9 @@ export async function GET() {
   if (!user) return json({ error: 'Please sign in to access your timetable.' }, 401);
   try {
     const row = await env.DB!.prepare('SELECT data, revision FROM planners WHERE user_id = ?').bind(user.userId).first<{ data: string; revision: number }>();
-    return json({ data: row ? JSON.parse(row.data) : emptyPlanner(), revision: row?.revision ?? 0 });
+    const data = row ? upgradePlanner(JSON.parse(row.data)) : emptyPlanner();
+    if (!data) return json({ error: 'Your saved timetable could not be read. Please restore a backup.' }, 503);
+    return json({ data, revision: row?.revision ?? 0 });
   } catch { return json({ error: 'Your timetable could not be loaded. Please try again.' }, 503); }
 }
 export async function PUT(request: Request) {
@@ -23,6 +25,7 @@ export async function PUT(request: Request) {
     if (text.length > 2_000_000) return json({ error: 'This timetable is too large.' }, 413);
     body = JSON.parse(text);
   } catch { return json({ error: 'The timetable could not be read.' }, 400); }
+  if (body?.data?.schemaVersion !== 2) return json({ error: 'The app has been updated. Reload to use courses and shared links.' }, 409);
   if (!validatePlanner(body?.data) || !Number.isInteger(body.revision) || body.revision < 0) return json({ error: 'Please check the term dates and lecture times.' }, 400);
   try {
     const now = new Date().toISOString();
