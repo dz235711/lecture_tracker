@@ -1,0 +1,147 @@
+# Lecture Ledger — project context
+
+Last updated: 13 October 2026 (Europe/London).
+
+This file is Markdown despite its `.codex` filename. It is the maintained handoff for new chats working on this repository. Read it alongside `AGENTS.md`, `README.md`, and `CHANGELOG.md`; check the current source and Git state before relying on historical observations.
+
+## Required maintenance rule
+
+**Always keep this `.codex` file up to date after updates to the codebase.** After changing implementation, configuration, dependencies, tests, data schemas, or project documentation, update the affected sections and add a concise entry under Recent work before finishing the task. Include changes, decisions, checks performed, and any remaining work or limitations. Include the context update in the same commit as the change when committing. Remove stale claims instead of only appending contradictory notes. Do not mark checks as passed unless they were actually run. Do not copy credentials or personal timetable/completion data into this file or Git.
+
+The root `AGENTS.md` repeats this rule so future coding chats discover it automatically. Maintain `README.md` when setup or behaviour changes, and `CHANGELOG.md` plus descriptive commit messages for completed changes. The user explicitly requested Git history with changelogs.
+
+## Current project and user preferences
+
+- Project name in Codex: Lecture Tracker. App/product name: Lecture Ledger.
+- Active repository: `/home/dz/Desktop/lecture_tracker`.
+- Branch: `main`. Remote: `git@github.com:dz235711/lecture_tracker.git` ([GitHub repository](https://github.com/dz235711/lecture_tracker)). The user connected the remote; the assistant has not pushed changes in this conversation.
+- The original chat shell still defaulted to `/home/dz/Documents/Codex/2026-10-13/build` after the project was assigned. Use the active repository explicitly as the working directory; do not continue editing the old copy.
+- The user wants local hosting, persistent data on their own computer, source in GitHub, and a clean interface focused on tracking lecture completion.
+- Locations and calendar-style course codes are unnecessary. The numeric course number remains useful only for constructing materials links. Group by course, share resource metadata, colour by course, and allow individual session tags such as Tutorial.
+- Ask when specifications are materially unclear. Continue routine authorised work without unnecessary confirmation.
+
+## Agreed behaviour and implemented features
+
+Enter a term's start/end dates and timezone, courses, and one week's sessions. Generate weekly occurrences through the inclusive term end. A weekly session specifies title, course, weekday, start/end times, and tags. The current app supports same-day sessions; overnight sessions must be split.
+
+Each occurrence is independently marked done or undone. Completion keys are `<lecture-id>:<YYYY-MM-DD>`; completion values are timestamps. Marking one week's occurrence complete does not complete every week.
+
+- **Upcoming:** the scheduled end has not yet been reached, and the occurrence is not explicitly complete. An ongoing lecture therefore remains Upcoming.
+- **Unfinished:** the device time has reached/passed its scheduled end, and it has not been marked complete. The user explicitly chose the end time as the transition boundary.
+- **Completed:** the occurrence has a saved completion record, which takes priority over the time-derived status.
+
+The browser reads `Date.now()` every second with `setInterval`, and again on focus and visibility changes. It reads the actual device time each time; it does not increment a cached clock or wait until the next startup. Time-derived statuses are computed, not written as unfinished flags. Reopening after a break recalculates them immediately. Session times use the term timezone, including daylight-saving changes.
+
+The UI has Overview, Courses & lectures, Catch up, and Term & settings. It includes week/term scope, previous/next week navigation, status filters and counts, search, next lecture, progress, course grouping/colours, course/session editors, completion/undo, and JSON backup export/restore. Upcoming occurrences do not count against progress. Example mode lives only in memory and does not overwrite the real planner. Removing a course removes its sessions and completion history after confirmation; editing term dates retains completion records.
+
+## Course resources
+
+Each course has an ID, name, numeric Scientia course number, Imperial Panopto folder UUID, and one of the supported colours (`sage`, `violet`, `blue`, `rose`, `amber`). Sessions reference the course instead of duplicating metadata. The folder input accepts a raw UUID or an Imperial Panopto folder URL. Legacy migrated courses may have blank resource fields until edited.
+
+The user authorised assuming these university resource locations are static. Materials deliberately use the fixed `2627` path:
+
+```text
+https://scientia.doc.ic.ac.uk/2627/modules/<course-number>/materials
+```
+
+Recording links use the shared folder UUID and the specific occurrence date. The date is `MM/DD/YYYY`, with both startDate and endDate set to that date. Quoted values are URL-encoded in the fragment; this opens a date-filtered recording list rather than selecting a particular video.
+
+The user supplied Quantum computing as the reference example:
+
+```text
+Course number: 70021
+Folder UUID: 4394cd01-a3d6-489a-b98c-b49b011de184
+Materials: https://scientia.doc.ic.ac.uk/2627/modules/70021/materials
+Recording on 12 October 2026:
+https://imperial.cloud.panopto.eu/Panopto/Pages/Sessions/List.aspx#folderID=%224394cd01-a3d6-489a-b98c-b49b011de184%22&startDate=%2210%2F12%2F2026%22&endDate=%2210%2F12%2F2026%22
+```
+
+University authentication and recording availability are handled by Scientia/Panopto. The local tracker does not retrieve or host those materials.
+
+## Architecture and important files
+
+Current package: `lecture-ledger-local`, version `1.0.0`, React 19, TypeScript, Vite 8, Tailwind CSS 4, and lucide-react icons. Backend: Node's HTTP server and built-in `node:sqlite` (`DatabaseSync`). Node.js **24.15 or newer** is required. No hosted authentication, Cloudflare runtime, or cloud database is needed by the current version.
+
+| File | Purpose |
+| --- | --- |
+| `app/tracker.tsx` | Main UI, clock refresh, loading/saving planner, completion, term and backup controls |
+| `app/course-components.tsx` | Course/session editors, shared links, tags |
+| `app/globals.css` | App styling and responsive layout |
+| `lib/model.ts` | Schema, validation, recurrence, timezone conversion, URL builders, legacy migration |
+| `src/main.tsx`, `index.html` | React entry point and document shell |
+| `server/index.mjs` | Loopback HTTP API, static frontend serving, Vite development middleware |
+| `server/store.mjs` | SQLite storage, revisions, validation, backup parsing |
+| `scripts/start.mjs`, `start.sh` | Dependency install/build when needed and local startup |
+| `scripts/transfer.mjs` | Command-line backup import/export |
+| `scripts/test-model.mjs` | Recurrence, status, URLs, validation and migration checks |
+| `scripts/test-local-server.mjs` | Isolated SQLite/API persistence and request checks |
+| `README.md`, `CHANGELOG.md`, `.codex`, `AGENTS.md` | Setup, history, maintained context, coding instructions |
+
+The v2 planner contains `schemaVersion: 2`, a nullable term, courses, weekly lectures, and a completion map. Weekdays are Monday=0 through Sunday=6. Occurrences are generated from this planner rather than stored as individual database rows.
+
+SQLite stores one planner JSON record with a revision and update timestamp. Saves use compare-and-update revisions; stale tabs receive HTTP 409 instead of silently overwriting newer data. Existing v1 planners/backups upgrade while preserving lecture IDs and completion keys. Backup format is `{ format: 'lecture-ledger', version: 2, data: planner }`; restore accepts versions 1 and 2.
+
+Endpoints: `GET /api/planner` returns data/revision, `PUT /api/planner` saves validated data/revision, and `GET /api/backup` downloads JSON. The server binds only to `127.0.0.1`, checks allowed Host and write Origin, limits request bodies to 2 MB, and serves only the built frontend in production. Unknown API routes and attempts to access private files are rejected. There is one local planner, shared by browsers using the same server; this is not a multi-user account service.
+
+## Running, storage, and backups
+
+From the active repository:
+
+```sh
+./start.sh
+```
+
+Open `http://127.0.0.1:3000/`. Keep the server process running; Ctrl+C stops it, and the same command restarts it. Startup installs dependencies if absent and rebuilds the frontend when its source fingerprint changes. First installation needs internet; normal runs with installed dependencies work offline, except opening external university links.
+
+`start.sh` selects a suitable Node on PATH or the bundled Node on this computer. Optional `LEDGER_NODE_BIN` selects an executable. The bundled runtime used during development was `/home/dz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node` (24.19.0); the system Node was 20.20.0, so plain `npm` commands may require a suitable Node first. On other systems with Node 24.15+, use `npm ci` then `npm start`.
+
+Defaults: port 3000 and `<repository>/data/lecture-ledger.sqlite`. `PORT` changes the port; `LEDGER_DB_PATH` selects a database (prefer an absolute filename). `npm run dev` provides live frontend updates and the API on the same port; it uses the same database unless overridden. Use a separate database for development/QA that modifies data.
+
+The database survives closing the browser and restarting the server. SQLite uses WAL and may create sidecar files. The database file has owner-only permissions on the tested Linux system. Data, sidecars, dependencies, build output, environment files, and conventionally named backups are ignored by Git. A source clone does not include the user's timetable.
+
+Export/restore in Term & settings or use:
+
+```sh
+npm run export -- /path/to/lecture-ledger-backup.json
+npm run import -- /path/to/lecture-ledger-backup.json
+```
+
+Export refuses to overwrite a file; import refuses to replace a nonempty timetable without `--replace`. Back up before replacing data. Stop the app before copying the raw database and any remaining sidecars. Never reset or commit the real database for testing.
+
+## Work completed and Git history
+
+1. Built and deployed the original private tracker with OpenAI Sites, using account authentication and Cloudflare Worker/D1 persistence. Implemented recurring schedules, completion/undo, status views, timezone/DST handling, backup/restore, and responsive UI. Reviewed persistence, recurrence and UI.
+2. Added shared courses, colours, course materials and date-filtered recording links, per-session tags, and legacy migration. Removed location and repeated course-code fields. Tested the supplied URLs, occurrence dates, migration and course/tutorial editing, including mobile layouts; deployed the update.
+3. At the user's request, converted to a standalone local app. Replaced hosted infrastructure with Vite/React plus a loopback Node/SQLite server, added startup/transfer scripts and setup docs, and tested persistence and request handling. Removed obsolete hosted/starter code from the current tree. Reconstructed the earlier source milestones into descriptive commits, removed the original hosting project identifier from those snapshots, tagged releases, and packaged a verified Git bundle.
+4. Confirmed the user's newly assigned Desktop project contains the app and clean Git history. The user connected its GitHub remote. Added this maintained Markdown handoff and a discoverable instruction file for future chats.
+
+Implementation milestones:
+
+| Commit | Tag | Change |
+| --- | --- | --- |
+| `6635fb4` | `v0.1.0` | Initial recurring lecture tracker with persistent progress |
+| `c8a2e73` | `v0.2.0` | Course grouping, shared materials/recordings, colours and tags |
+| `c70c76f` | `v1.0.0` | Local hosting and SQLite storage |
+
+These commits include change descriptions and validation. Later documentation commits should be read with `git log`; `c70c76f` is the implementation baseline, not necessarily the latest HEAD.
+
+Original local handoff copy: `/home/dz/Documents/Codex/2026-10-13/build/outputs/lecture-ledger-local`. The original verified bundle is `/home/dz/Documents/Codex/2026-10-13/build/outputs/lecture-ledger-local.bundle`; it captures the three implementation milestones, not subsequent changes to the Desktop repository.
+
+The earlier hosted site was `https://lecture-ledger-dz.dz23571113.chatgpt.site/`. It was not deleted when switching to local hosting. Do not assume its current availability or deploy further changes there unless requested.
+
+At the initial hosted-to-local transfer, the saved term was Autumn, 5 October–27 November 2026, Europe/London, with no saved courses/sessions/completions. Those term details were imported locally. This is a historical observation, not an assertion about today's database contents.
+
+The local browser review confirmed the transferred term and “Saved on this computer” UI. The server launched then was from the original outputs copy. Before using port 3000 now, check which copy/process owns it; starting or editing the Desktop repository does not update a running server from the old copy. Screenshot capture for the final local view failed through the browser tool; the DOM view was verified.
+
+## Validation and known limits
+
+The completed local implementation passed `npm test` and `npm run build` (including TypeScript) before the handoff. Checks covered inclusive recurrence, independent completion, end-time boundary, all weekdays, timezones/DST, invalid data, exact supplied URLs and later/year-boundary dates, shared metadata/colours/tags, legacy migration, restart persistence, revision conflicts, host/origin restrictions, oversized/invalid saves, backup downloads, and private-file access. Server tests create temporary databases. The Host-header test uses Node HTTP requests because Node fetch did not preserve the supplied Host header.
+
+These results describe the previous implementation run. Re-run appropriate checks after relevant changes; avoid running the app or destructive QA against personal data unnecessarily. For documentation-only updates, review content and `git diff --check`; a new application build/test run is not needed.
+
+Known scope: manually started local server; single local planner; same-day weekly sessions; fixed materials path `2627`; recording links open filtered lists. No automatic server startup, multi-device synchronisation, holiday exceptions, or direct recording-video lookup was implemented. These are scope notes, not authorised new tasks.
+
+## Recent work
+
+- **13 October 2026 — implementation:** completed the three milestones above; passed model/local API tests and production build; migrated the initial Autumn term; verified the local settings page; produced source Git history/tags and a portable bundle.
+- **13 October 2026 — project handoff:** verified the active Desktop repository and its configured GitHub remote; added `.codex` and `AGENTS.md` with the mandatory context maintenance rule; updated README repository/context references and the changelog. Documentation validation: reviewed source/history against this handoff and checked the Git diff. No runtime code or personal database changed.

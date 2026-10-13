@@ -96,4 +96,8 @@ git push -u origin main
 git push origin --tags
 ```
 
-No remote is configured yet. If your GitHub repository already contains commits, merge its history deliberately instead of force-pushing. A sibling `lecture-ledger-local.bundle` also contains the complete source history and tags; it can be cloned with `git clone lecture-ledger-local.bundle lecture-ledger`.
+The current checkout is connected to `git@github.com:dz235711/lecture_tracker.git`. The commands above are for attaching a fresh copy; do not add an existing remote again. If a destination repository already contains commits, merge its history deliberately instead of force-pushing. The original handoff included a verified `lecture-ledger-local.bundle` containing the three implementation milestones and tags; later changes are recorded in this repository.
+
+## Context for new chats
+
+The root `.codex` file is a Markdown summary of the requirements, implementation, architecture, Git history, validation and current context. Pass it to new chats. `AGENTS.md` instructs coding agents to read it first and always keep it up to date after codebase updates.

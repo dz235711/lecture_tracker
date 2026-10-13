@@ -2,6 +2,12 @@
 
 These entries describe the work completed in this conversation. Commits contain the matching source snapshots. The original hosted project ID is removed.
 
+## Unreleased
+
+Add the `.codex` Markdown project handoff and `AGENTS.md` instructions requiring context updates after codebase changes. Record the active Desktop checkout and user-configured GitHub remote, and update README context/repository guidance. Runtime behaviour and personal data are unchanged.
+
+Validation: documentation checked against source and Git history; `git diff --check`.
+
 ## 1.0.0 — 2026-10-13
 
 Run the tracker entirely on the user's computer with a Vite/React frontend and a Node.js server. Replace hosted authentication and D1 with a local SQLite database; preserve course grouping, resource links, tags, recurrence, and completion behaviour. Bind the server to loopback, validate saves, and reject stale or cross-origin writes. Keep personal data and generated files out of Git.
