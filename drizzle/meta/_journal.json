@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791894012615,
+      "tag": "0000_exotic_hobgoblin",
+      "breakpoints": true
+    }
+  ]
+}
