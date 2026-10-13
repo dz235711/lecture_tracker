@@ -16,3 +16,4 @@ work/
 npm-debug.log*
 .DS_Store
 lecture-ledger-backup*.json
+lecture-tracker-backup*.json

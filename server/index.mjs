@@ -58,7 +58,7 @@ export async function startLedger({ port = 3000, databasePath, staticDirectory =
       }
       if (url.pathname === '/api/backup') {
         if (request.method !== 'GET') { sendJson(response, { error: 'This action is not supported.' }, 405, { Allow: 'GET' }); return; }
-        sendJson(response, { format: 'lecture-ledger', version: 2, data: store.load().data }, 200, { 'Content-Disposition': 'attachment; filename="lecture-ledger-backup.json"' }); return;
+        sendJson(response, { format: 'lecture-ledger', version: 2, data: store.load().data }, 200, { 'Content-Disposition': 'attachment; filename="lecture-tracker-backup.json"' }); return;
       }
       if (url.pathname.startsWith('/api/')) throw new AppError(404, 'This page does not exist.');
       if (!['GET', 'HEAD'].includes(request.method)) throw new AppError(405, 'This action is not supported.');
@@ -117,7 +117,7 @@ export async function startConfiguredLedger(options = {}) {
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const development = process.argv.includes('--dev');
   startConfiguredLedger({ development }).then(app => {
-    console.log(`Lecture Ledger is running at ${app.origin}/`);
+    console.log(`Lecture Tracker is running at ${app.origin}/`);
     console.log(`Data is saved in ${app.store.filename}`);
     const stop = async () => { await app.close(); process.exit(0); };
     process.once('SIGINT', stop); process.once('SIGTERM', stop);

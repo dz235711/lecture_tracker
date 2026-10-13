@@ -1,10 +1,10 @@
-# Lecture Ledger
+# Lecture Tracker
 
 A lecture and tutorial tracker that runs on your computer. Enter a term and one week's schedule; sessions repeat through the inclusive term end date. Your timetable and completion history live in a local SQLite file.
 
 ## Open the desktop app
 
-Double-click **Lecture Ledger** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Ledger** to shut it down. Opening it again focuses the existing window.
+Double-click **Lecture Tracker** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Tracker** to shut it down. Opening it again focuses the existing window.
 
 Desktop mode keeps your existing timetable at `data/lecture-ledger.sqlite` in this checkout. It automatically selects an available internal port; there is no browser address or port setting to manage. Materials and recordings open in your usual browser so university sign-in works normally.
 
@@ -51,6 +51,8 @@ Browser mode defaults to port 3000 and tries the next 20 ports if it is busy. Th
 
 The default file is `data/lecture-ledger.sqlite`, relative to this repository. SQLite may also create `-wal` and `-shm` files beside it while the app runs. Closing the desktop app or browser and reopening it keeps your data. All browsers on this computer that use the same running app see the same timetable.
 
+Lecture Tracker keeps the existing database filename, Electron profile directory, settings paths and backup format from its earlier Lecture Ledger name. Renaming the app does not create a new timetable or reset preferences. New backup downloads are named `lecture-tracker-backup.json`; older backups remain accepted.
+
 The app listens only on `127.0.0.1`. It uses no account login or cloud database. Once installed, the tracker runs entirely on your computer. Opening course materials or recordings still connects to the university websites and may require university sign-in.
 
 The data directory, backups, installed dependencies, and generated build are excluded from Git. Git stores the source and its history; it does not back up your timetable. Export a JSON backup from **Term & settings → Export backup** and keep a copy somewhere safe. Restore it with **Restore backup**. Backups from the earlier hosted tracker are accepted, including its older format; completion records are preserved.
@@ -64,8 +66,8 @@ LEDGER_DB_PATH=/path/to/private-folder/lecture-ledger.sqlite ./open.sh
 To transfer backups without opening the browser, with Node.js 24.15 or newer:
 
 ```sh
-npm run export -- /path/to/lecture-ledger-backup.json
-npm run import -- /path/to/lecture-ledger-backup.json
+npm run export -- /path/to/lecture-tracker-backup.json
+npm run import -- /path/to/lecture-tracker-backup.json
 ```
 
 Export refuses to overwrite an existing file. Import refuses to replace an existing timetable unless you add `--replace`. Export a backup before replacing your timetable. To move the raw database instead, stop the app first and copy the database together with any remaining SQLite sidecar files.

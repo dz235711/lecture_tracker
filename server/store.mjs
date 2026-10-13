@@ -54,6 +54,6 @@ export function readBackup(text) {
   let parsed;
   try { parsed = JSON.parse(text); } catch { throw new AppError(400, 'This backup is not valid JSON.'); }
   const data = upgradePlanner(parsed?.data);
-  if (parsed?.format !== 'lecture-ledger' || ![1, 2].includes(parsed.version) || !data) throw new AppError(400, 'Choose a valid Lecture Ledger backup.');
+  if (parsed?.format !== 'lecture-ledger' || ![1, 2].includes(parsed.version) || !data) throw new AppError(400, 'Choose a valid Lecture Tracker backup.');
   return data;
 }

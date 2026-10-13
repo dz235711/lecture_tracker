@@ -12,11 +12,12 @@ if (process.env.LEDGER_DESKTOP_SMOKE === '1') {
     if (!filename || !resolve(filename).startsWith(resolve(tmpdir()) + sep)) throw new Error('Desktop tests require temporary data, profile and screenshot paths before opening the database.');
   }
 }
-app.setName('Lecture Ledger');
+app.setName('Lecture Tracker');
+// Keep the existing profile path so the display-name change preserves settings and locks.
 const profile = resolve(process.env.LEDGER_DESKTOP_PROFILE || join(app.getPath('appData'), 'Lecture Ledger'));
 mkdirSync(profile, { recursive: true, mode: 0o700 });
 app.setPath('userData', profile); app.setPath('sessionData', profile);
-if (process.platform === 'linux') app.setDesktopName('lecture-ledger.desktop');
+if (process.platform === 'linux') app.setDesktopName('lecture-tracker.desktop');
 let window;
 let ledger;
 let quitting = false;
@@ -55,7 +56,7 @@ else {
       const databasePath = process.env.LEDGER_DB_PATH || (app.isPackaged ? join(app.getPath('userData'), 'lecture-ledger.sqlite') : join(root, 'data/lecture-ledger.sqlite'));
       ledger = await startLedger({ port: 0, databasePath, staticDirectory: join(root, 'dist') });
       window = new BrowserWindow({
-        title: 'Lecture Ledger', width: 1280, height: 880, minWidth: 860, minHeight: 640,
+        title: 'Lecture Tracker', width: 1280, height: 880, minWidth: 860, minHeight: 640,
         backgroundColor: '#f7f8f4', show: false, icon: join(root, 'public/app-icon.png'),
         webPreferences: { preload: join(root, 'desktop/preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
       });
@@ -67,7 +68,7 @@ else {
         if (details.url.startsWith(ledger.origin + '/')) headers['Content-Security-Policy'] = ["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'"];
         callback({ responseHeaders: headers });
       });
-      session.on('will-download', (_event, item) => item.setSaveDialogOptions({ title: 'Save Lecture Ledger backup', defaultPath: join(app.getPath('downloads'), 'lecture-ledger-backup.json') }));
+      session.on('will-download', (_event, item) => item.setSaveDialogOptions({ title: 'Save Lecture Tracker backup', defaultPath: join(app.getPath('downloads'), 'lecture-tracker-backup.json') }));
       window.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
       window.webContents.on('will-navigate', (event, url) => { if (!isAppPage(url, ledger.origin)) { event.preventDefault(); openExternal(url); } });
       window.webContents.on('will-attach-webview', event => event.preventDefault());
@@ -76,7 +77,7 @@ else {
       Menu.setApplicationMenu(Menu.buildFromTemplate([
         { label: 'File', submenu: [
           { label: 'Term & settings', accelerator: 'CommandOrControl+,', click: () => navigate('settings') },
-          { type: 'separator' }, { label: 'Quit Lecture Ledger', accelerator: 'CommandOrControl+Q', click: () => app.quit() },
+          { type: 'separator' }, { label: 'Quit Lecture Tracker', accelerator: 'CommandOrControl+Q', click: () => app.quit() },
         ] },
         { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
         { label: 'View', submenu: [
@@ -85,7 +86,7 @@ else {
           { label: 'Catch up', accelerator: 'CommandOrControl+3', click: () => navigate('catchup') },
           { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'togglefullscreen' },
         ] },
-        { label: 'Help', submenu: [{ label: 'About Lecture Ledger', click: () => { void dialog.showMessageBox(window, { title: 'Lecture Ledger', message: 'Lecture Ledger', detail: 'Your lectures, resources and progress, saved on this computer.\nClose the window or choose File → Quit to shut down the app.' }); } }] },
+        { label: 'Help', submenu: [{ label: 'About Lecture Tracker', click: () => { void dialog.showMessageBox(window, { title: 'Lecture Tracker', message: 'Lecture Tracker', detail: 'Your lectures, resources and progress, saved on this computer.\nClose the window or choose File → Quit to shut down the app.' }); } }] },
       ]));
       window.once('ready-to-show', () => { if (process.env.LEDGER_DESKTOP_SMOKE !== '1') window.show(); });
       await window.loadURL(ledger.origin + '/');
@@ -97,7 +98,7 @@ else {
       }
     } catch (error) {
       if (process.env.LEDGER_DESKTOP_SMOKE === '1') console.error(error);
-      else dialog.showErrorBox('Lecture Ledger could not start', error.message);
+      else dialog.showErrorBox('Lecture Tracker could not start', error.message);
       await ledger?.close(); app.exit(1);
     }
   });

@@ -18,7 +18,7 @@ test('local storage persists across restarts and protects updates and private fi
   const folder = await mkdtemp(join(tmpdir(), 'lecture-ledger-test-'));
   const databasePath = join(folder, 'private', 'lecture-ledger.sqlite');
   const staticDirectory = join(folder, 'dist');
-  await mkdir(staticDirectory); await mkdir(join(folder, 'private')); await writeFile(join(staticDirectory,'index.html'),'<h1>Lecture Ledger test</h1>');
+  await mkdir(staticDirectory); await mkdir(join(folder, 'private')); await writeFile(join(staticDirectory,'index.html'),'<h1>Lecture Tracker test</h1>');
   await writeFile(join(folder,'private','private.json'), 'private timetable');
   let app;
   try {
@@ -27,7 +27,7 @@ test('local storage persists across restarts and protects updates and private fi
     let get = async () => (await fetch(origin+'/api/planner')).json();
     let put = (body, headers = {}) => fetch(origin+'/api/planner', { method:'PUT', headers:{ Origin:origin, 'Content-Type':'application/json', ...headers }, body:JSON.stringify(body) });
     assert.equal((await fetch(origin+'/')).status,200);
-    assert.equal((await (await fetch(origin+'/')).text()),'<h1>Lecture Ledger test</h1>');
+    assert.equal((await (await fetch(origin+'/')).text()),'<h1>Lecture Tracker test</h1>');
     assert.equal((await get()).revision,0);
     const saved = await put({data,revision:0}); assert.equal(saved.status,200); assert.equal((await saved.json()).revision,1);
     assert.deepEqual((await get()).data,data);

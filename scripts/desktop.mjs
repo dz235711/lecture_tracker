@@ -20,7 +20,7 @@ try {
   console.error(error.message);
   if (process.platform === 'linux') {
     const { spawnSync } = await import('node:child_process');
-    spawnSync('zenity', ['--error', '--title=Lecture Ledger', '--text=' + error.message], { stdio: 'ignore' });
+    spawnSync('zenity', ['--error', '--title=Lecture Tracker', '--text=' + error.message], { stdio: 'ignore' });
   }
   process.exitCode = 1;
 }

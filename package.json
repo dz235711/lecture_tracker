@@ -1,5 +1,5 @@
 {
-  "name": "lecture-ledger-local",
+  "name": "lecture-tracker-local",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -40,5 +40,5 @@
     "vite": "8.0.13"
   },
   "main": "desktop/main.mjs",
-  "productName": "Lecture Ledger"
+  "productName": "Lecture Tracker"
 }

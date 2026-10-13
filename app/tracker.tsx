@@ -189,9 +189,9 @@ export default function Tracker() {
     } });
   }
   function exportBackup() {
-    if (!example) { const a = document.createElement('a'); a.href = '/api/backup'; a.download = 'lecture-ledger-backup.json'; a.click(); setNotice('Backup download started'); return; }
+    if (!example) { const a = document.createElement('a'); a.href = '/api/backup'; a.download = 'lecture-tracker-backup.json'; a.click(); setNotice('Backup download started'); return; }
     const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'lecture-ledger', version: 2, data: active }, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'lecture-ledger-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const a = document.createElement('a'); a.href = url; a.download = 'lecture-tracker-backup.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice('Backup downloaded');
   }
   async function importBackup(file?: File) {
@@ -200,7 +200,7 @@ export default function Tracker() {
       if (file.size > 2_000_000) throw new Error('This backup is too large.');
       const parsed = JSON.parse(await file.text());
       const restored = upgradePlanner(parsed.data);
-      if (parsed.format !== 'lecture-ledger' || ![1, 2].includes(parsed.version) || !restored) throw new Error('Choose a valid Lecture Ledger backup.');
+      if (parsed.format !== 'lecture-ledger' || ![1, 2].includes(parsed.version) || !restored) throw new Error('Choose a valid Lecture Tracker backup.');
       setFormError('');
       setConfirm({ title: 'Restore this timetable?', text: 'This will replace your current term, weekly schedule, and completion history with the backup.', label: 'Restore backup', action: async () => { if (await save(restored, 'Backup restored')) { setConfirm(null); setWeek(''); } } });
     } catch (err) { setError(err instanceof Error ? err.message : 'This backup could not be opened.'); }
@@ -212,7 +212,7 @@ export default function Tracker() {
 
   return <div className={`app-shell${desktop ? ' desktop-app' : ''}`}>
     <aside className="sidebar">
-      <a className="brand" href="/" aria-label="Lecture Ledger home"><span className="brand-icon"><BookOpen size={25} strokeWidth={1.7} /></span><span>lecture<span className="brand-second">ledger<span className="brand-dot">.</span></span></span></a>
+      <a className="brand" href="/" aria-label="Lecture Tracker home"><span className="brand-icon"><BookOpen size={25} strokeWidth={1.7} /></span><span>lecture<span className="brand-second">tracker<span className="brand-dot">.</span></span></span></a>
       <div className="nav-label">YOUR STUDY SPACE</div>
       <nav aria-label="Main navigation">
         <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><LayoutDashboard size={18} />Overview</button>
@@ -223,7 +223,7 @@ export default function Tracker() {
       <div className="sidebar-bottom">{!desktop && <div className="small-note"><Sparkles size={20} /><p>One lecture at a time.<br /><strong>You’ve got this.</strong></p></div>}<button className={view === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setView('settings')}><Settings2 size={18} />Term & settings</button>{desktop && <button className="nav-item quit-app" disabled={saving} onClick={() => desktop?.quit()}><Power size={18} />Quit app</button>}<div className="save-state" role="status">{loading || saving ? <Loader2 size={15} className="spin" /> : <CloudCheck size={15} />}<span>{example ? 'Exploring an example' : loading ? 'Loading your timetable' : saving ? 'Saving your progress…' : loadError ? 'Could not connect' : error ? 'Save needs attention' : 'Saved on this computer'}</span></div></div>
     </aside>
     <div className="main-shell">
-      <header className="topbar"><div className="topbar-label"><GraduationCap size={18} /><span>{desktop ? 'Lecture Ledger' : 'A little progress, every week.'}</span></div><div className="topbar-date"><span className="live-dot" />{dateLabel(today, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div></header>
+      <header className="topbar"><div className="topbar-label"><GraduationCap size={18} /><span>{desktop ? 'Lecture Tracker' : 'A little progress, every week.'}</span></div><div className="topbar-date"><span className="live-dot" />{dateLabel(today, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div></header>
       <main>
         {example && <div className="example-banner"><span><Sparkles size={16} />You’re exploring an example. Changes here aren’t saved on this computer.</span><button onClick={() => { setExample(null); setWeek(''); setScope('week'); setFilter('all'); }}>Exit example <X size={15} /></button></div>}
         {error && <div className="alert" role="alert"><span>{error}</span><button className="text-button" onClick={() => { void load(); }}>Reload saved data</button><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
@@ -247,7 +247,7 @@ export default function Tracker() {
           {view === 'schedule' && <>{!active.term ? <div className="empty-panel"><BookOpen size={34} /><h2>Start with your term.</h2><p>Set your start and end dates, then add courses and their weekly sessions.</p><button className="button primary" onClick={editTerm}>Set up my term <ArrowRight size={16} /></button></div> : <><div className="schedule-summary"><span><Repeat2 size={18} /><strong>{active.courses.length} course{active.courses.length !== 1 ? 's' : ''} · {active.lectures.length} weekly session{active.lectures.length !== 1 ? 's' : ''}</strong><span>Repeats {dateLabel(active.term.start)} – {dateLabel(active.term.end)}</span></span><button className="text-button" onClick={editTerm}>Edit term <Pencil size={14} /></button></div><CoursesPanel data={active} all={all} busy={busy} onAddCourse={() => editCourse()} onEditCourse={editCourse} onDeleteCourse={deleteCourse} onAddLecture={courseId => editLecture(undefined, courseId)} onEditLecture={lecture => editLecture(lecture)} onDeleteLecture={deleteLecture} /><div className="schedule-note"><BookOpen size={18} /><p>Course materials and recording folders are saved once per course. Each occurrence has a recording link for its own date. Tags such as <strong>Tutorial</strong> belong to individual weekly sessions.</p></div></>}</>}
           {view === 'settings' && <div className="settings-grid"><section className="settings-card"><span className="setting-icon"><CalendarDays size={24} /></span><h2>Your current term</h2>{active.term ? <><dl><div><dt>Term name</dt><dd>{active.term.name}</dd></div><div><dt>Start date</dt><dd>{dateLabel(active.term.start, { day: 'numeric', month: 'long', year: 'numeric' })}</dd></div><div><dt>End date</dt><dd>{dateLabel(active.term.end, { day: 'numeric', month: 'long', year: 'numeric' })}</dd></div><div><dt>Timezone</dt><dd>{active.term.timezone.replaceAll('_', ' ')}</dd></div></dl><button className="button secondary" disabled={busy} onClick={editTerm}><Pencil size={16} />Edit term details</button></> : <><p>Set your term dates to start building your timetable.</p><button className="button primary" onClick={editTerm}>Set up my term</button></>}</section><section className="settings-card"><span className="setting-icon"><CloudCheck size={24} /></span><h2>Saved on your computer.</h2><p>Your timetable and completion history are stored in a local SQLite database. They stay saved when you close and reopen the app. Export a backup to move your progress to another computer.</p><div className="rule-note"><Clock3 size={20} /><div><strong>The clock does the organising.</strong><p>A lecture stays upcoming until its end time passes. Then it becomes unfinished, unless you’ve marked that occurrence done.</p></div></div><h3>Keep a copy</h3><p>Download a backup of your timetable and progress, or restore one you saved earlier.</p><div className="backup-actions"><button className="button secondary" disabled={busy} onClick={exportBackup}><Download size={16} />Export backup</button><button className="button secondary" disabled={busy} onClick={() => fileRef.current?.click()}><Upload size={16} />Restore backup</button><input ref={fileRef} type="file" accept=".json,application/json" hidden aria-label="Choose backup" onChange={e => { void importBackup(e.target.files?.[0]); }} /></div></section></div>}
         </>}
-        {!desktop && <footer className="page-footer"><span>lecture ledger<span className="brand-dot">.</span></span><span>A clearer week. A calmer term.</span></footer>}
+        {!desktop && <footer className="page-footer"><span>lecture tracker<span className="brand-dot">.</span></span><span>A clearer week. A calmer term.</span></footer>}
       </main>
     </div>
     {notice && <div className="toast" role="status"><Check size={17} />{notice}</div>}

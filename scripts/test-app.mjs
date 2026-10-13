@@ -141,9 +141,18 @@ test('desktop shortcut actions and graphical controls use the same persistent se
   const app = await fixture();
   try {
     const desktop = join(app.folder, 'Desktop with spaces');
+    await mkdir(desktop);
+    const previous = join(desktop, 'Lecture Ledger.desktop');
+    await writeFile(previous, desktopEntry().replace('Name=Lecture Tracker', 'Name=Lecture Ledger'));
     await app.run('install-shortcut', desktop);
-    const filename = join(desktop, 'Lecture Ledger.desktop');
+    await assert.rejects(stat(previous), { code: 'ENOENT' });
+    const filename = join(desktop, 'Lecture Tracker.desktop');
     const entry = await readFile(filename, 'utf8');
+    // A shortcut belonging to another checkout must survive the rename cleanup.
+    const other = desktopEntry(join(app.folder, 'other-checkout'));
+    await writeFile(previous, other);
+    await app.run('install-shortcut', desktop);
+    assert.equal(await readFile(previous, 'utf8'), other);
     assert.match(entry, /desktop\.sh/);
     assert.match(entry, /--quit/);
     assert.match(entry, /--settings/);

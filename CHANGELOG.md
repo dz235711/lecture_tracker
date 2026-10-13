@@ -4,6 +4,10 @@ These entries describe the work completed in this conversation. Commits contain 
 
 ## Unreleased
 
+Rename the product to Lecture Tracker across the interface, document/window titles, native menus/dialogs, startup messages, package metadata and new backup filenames. Install renamed desktop/applications shortcuts and remove old Lecture Ledger shortcuts only when they belong to this checkout. Preserve the database/profile/settings paths, private control identities and backup format so existing data, preferences and backups continue to work. Ignore both old and new conventional backup filenames in Git.
+
+Validation: model checks and all nine API/browser-launcher tests passed, including replacement of an owned old shortcut and preservation of another checkout's shortcut. Actual Electron save/reopen/source-launcher checks and build preparation passed using temporary data. Installed and validated the renamed executable shortcuts; checked Git whitespace. The real database and profile were not used for QA or migrated.
+
 Remove the session-name field and identify sessions by their course and tags throughout the overview, course editor, next-session card, search and accessible controls. Show Lecture for untagged sessions and add it as a tag suggestion. New sessions omit titles; retain older titles as hidden compatibility metadata without changing IDs, schedules or completion history. Sort simultaneous occurrences by course/tags/ID instead of requiring a title.
 
 Validation: model checks and all nine API/browser-launcher tests passed with temporary data, including sessions without titles, old-name compatibility, tag edits preserving completion keys and simultaneous sessions. TypeScript/frontend/backend build passed. Actual Electron checks passed editing an older session without a name field, creating a title-free session, completion/backup export, restart persistence and shutdown. Reviewed the captured tag-based layout and checked Git whitespace. The real database was not modified for QA.
