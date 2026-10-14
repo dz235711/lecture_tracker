@@ -176,7 +176,7 @@ export function desktopEntry(directory = root) {
   if (/[\n\r]/.test(directory)) throw new Error('The app folder cannot contain line breaks.');
   const quote = value => '"' + value.replace(/[%\\"`$]/g, character => character === '%' ? '%%' : '\\' + character) + '"';
   const executable = quote(join(directory, 'desktop.sh'));
-  return `[Desktop Entry]\nType=Application\nName=Lecture Tracker\nComment=Your local lecture tracker\nExec=${executable}\nIcon=${join(directory, 'public/favicon.svg')}\nTerminal=false\nCategories=Education;\nActions=Quit;Settings;\nX-LectureLedger=true\n\n[Desktop Action Quit]\nName=Quit Lecture Tracker\nExec=${executable} --quit\n\n[Desktop Action Settings]\nName=Term & settings\nExec=${executable} --settings\n`;
+  return `[Desktop Entry]\nType=Application\nName=Lecture Tracker\nComment=Your local lecture tracker\nExec=${executable}\nIcon=${join(directory, 'public/favicon.svg')}\nTerminal=false\nStartupWMClass=lecture-tracker\nCategories=Education;\nActions=Quit;Settings;\nX-LectureLedger=true\n\n[Desktop Action Quit]\nName=Quit Lecture Tracker\nExec=${executable} --quit\n\n[Desktop Action Settings]\nName=Term & settings\nExec=${executable} --settings\n`;
 }
 export function installShortcut(directory) {
   if (process.platform !== 'linux') throw new Error('Desktop shortcuts are available on Linux. Use npm run open and npm run stop on this computer.');

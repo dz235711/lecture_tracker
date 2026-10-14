@@ -154,6 +154,7 @@ test('desktop shortcut actions and graphical controls use the same persistent se
     await app.run('install-shortcut', desktop);
     assert.equal(await readFile(previous, 'utf8'), other);
     assert.match(entry, /desktop\.sh/);
+    assert.match(entry, /^StartupWMClass=lecture-tracker$/m);
     assert.match(entry, /--quit/);
     assert.match(entry, /--settings/);
     if (process.platform === 'linux') await execute('desktop-file-validate', [filename]);
@@ -184,4 +185,53 @@ test('graceful close releases a port even when a client leaves an unfinished req
     await app.close();
     await assert.rejects(fetch(app.origin));
   } finally { socket.destroy(); await app.close(); await rm(folder, { recursive: true, force: true }); }
+});
+
+test('Linux sandbox setup targets one executable and rejects AppArmor policy characters', async () => {
+  if (process.platform !== 'linux') return;
+  const folder = await mkdtemp(join(tmpdir(), 'ledger-sandbox-'));
+  try {
+    const source = await readFile(join(root, 'scripts/install-linux-sandbox.sh'));
+    const fixture = async name => {
+      const checkout = join(folder, name);
+      await mkdir(join(checkout, 'scripts'), { recursive: true });
+      await mkdir(join(checkout, 'node_modules/electron/dist'), { recursive: true });
+      const helper = join(checkout, 'scripts/install-linux-sandbox.sh');
+      const executable = join(checkout, 'node_modules/electron/dist/electron');
+      await writeFile(helper, source);
+      await writeFile(executable, '#!/bin/sh\nexit 0\n'); await chmod(executable, 0o755);
+      return { helper, executable };
+    };
+    const safe = await fixture('Lecture Tracker with spaces');
+    const { stdout: profile } = await execute('/bin/bash', [safe.helper, '--print']);
+    assert.ok(profile.includes(`"${safe.executable}" flags=(unconfined)`));
+    assert.match(profile, /\n  userns,\n/);
+    assert.match(profile, /profile lecture-tracker-[a-f0-9]{16} /);
+    const filename = join(folder, 'profile'); await writeFile(filename, profile);
+    if (await stat('/usr/sbin/apparmor_parser').catch(() => null)) await execute('/usr/sbin/apparmor_parser', ['--skip-kernel-load', '--skip-cache', filename]);
+    if (process.getuid() !== 0) await assert.rejects(execute('/bin/bash', [safe.helper, '--install']), /administrator authentication/);
+    for (const name of ['unsafe*glob', 'unsafe{brace}', 'unsafe"quote', 'unsafe\\slash', 'unsafe\nline']) {
+      const unsafe = await fixture(name);
+      await assert.rejects(execute('/bin/bash', [unsafe.helper, '--print']), /exact AppArmor executable rule/);
+    }
+  } finally { await rm(folder, { recursive: true, force: true }); }
+});
+
+test('desktop launcher reports an early sandbox failure instead of silently succeeding', async () => {
+  if (process.platform !== 'linux') return;
+  const folder = await mkdtemp(join(tmpdir(), 'ledger-desktop-failure-'));
+  try {
+    for (const directory of ['scripts', 'server', 'node_modules/electron', 'runtime']) await mkdir(join(folder, directory), { recursive: true });
+    for (const filename of ['scripts/desktop.mjs', 'scripts/build.mjs', 'server/config.mjs']) await writeFile(join(folder, filename), await readFile(join(root, filename)));
+    const binary = join(folder, 'node_modules/electron/fake-electron');
+    await writeFile(binary, '#!/bin/sh\nprintf "%s\\n" "FATAL:setuid_sandbox_host: sandbox permission denied" >&2\nexit 1\n'); await chmod(binary, 0o755);
+    await writeFile(join(folder, 'node_modules/electron/package.json'), '{"main":"index.cjs"}');
+    await writeFile(join(folder, 'node_modules/electron/index.cjs'), `module.exports = ${JSON.stringify(binary)};`);
+    await writeFile(join(folder, 'node_modules/electron/path.txt'), 'fake-electron');
+    // Existing non-ASCII log content must not confuse byte offsets for this launch.
+    await writeFile(join(folder, 'runtime/desktop.log'), 'Previous entry: 講義 📚\n'.repeat(30));
+    await assert.rejects(execute(process.execPath, [join(folder, 'scripts/desktop.mjs'), '--quit'], {
+      cwd: folder, env: { ...process.env, LEDGER_RUNTIME_DIR: join(folder, 'runtime'), LEDGER_DESKTOP_SMOKE: '1' }, timeout: 5_000,
+    }), error => error.code === 1 && error.stderr.includes('Ubuntu blocked the app’s secure sandbox') && error.stderr.includes('./setup-sandbox.sh'));
+  } finally { await rm(folder, { recursive: true, force: true }); }
 });

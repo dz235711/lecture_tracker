@@ -6,6 +6,8 @@ A lecture and tutorial tracker that runs on your computer. Enter a term and one 
 
 Double-click **Lecture Tracker** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Tracker** to shut it down. Opening it again focuses the existing window.
 
+Overview opens on **To do**, showing unfinished and upcoming sessions while hiding completed ones from the first load. Completing a session removes it from that view immediately. Choose **Completed** to review or undo completions, or **All sessions** to see everything. **Catch up** shows only unfinished sessions across the term.
+
 Desktop mode keeps your existing timetable at `data/lecture-ledger.sqlite` in this checkout. It automatically selects an available internal port; there is no browser address or port setting to manage. Materials and recordings open in your usual browser so university sign-in works normally.
 
 The window has a compact app layout and native File, Edit, View and Help menus. **Ctrl+1/2/3** opens Overview, Courses & lectures and Catch up; **Ctrl+,** opens Term & settings; **Ctrl+Q** quits. Backup export uses a native Save dialog, and restore uses a file chooser. Current saves finish before the database closes.
@@ -20,7 +22,17 @@ To install or refresh the Linux shortcut after cloning or moving the folder:
 
 If your desktop asks, choose **Allow Launching** once. Some desktop file menus do not show application actions; closing the app or its File menu provides the controls directly.
 
+The installed applications-menu entry can be pinned to the taskbar. Its desktop identity and window identity both use `lecture-tracker`, so launching and grouping use the same app.
+
 Startup installs missing dependencies and builds changed sources. The first setup downloads Electron and needs internet; subsequent starts work offline. Electron includes its own Node/Chromium runtime, while Node.js 24.15+ is used to prepare the source build. Background startup logs are in `.ledger/desktop.log`.
+
+Ubuntu with restricted user namespaces may block Electron's sandbox when launched from the taskbar. Enable secure launching once from this folder:
+
+```sh
+./setup-sandbox.sh
+```
+
+Ubuntu asks for administrator authentication to install an AppArmor permission for this checkout's exact Electron executable. The app then runs as your normal user with its sandbox enabled. The setup follows [Ubuntu's application-specific user-namespace policy](https://documentation.ubuntu.com/security/security-features/privilege-restriction/apparmor/); it does not change the system-wide restriction or install a privileged Electron binary. Run it again if you move the folder. You can inspect the generated rule with `scripts/install-linux-sandbox.sh --print`. Startup waits for the native window to load and reports early failures instead of silently detaching.
 
 On another computer with Node.js 24.15 or newer:
 
@@ -106,7 +118,7 @@ Browser development serves the app and API together with live frontend updates. 
 
 - `npm test`: recurrence, end-time status transitions, DST, completion, supplied resource URL patterns, shared metadata, tags, old backup migration, local persistence across restarts, conflicting writes, rejected cross-origin writes, and private-file access. Launcher checks cover background/foreground startup, repeated and concurrent opens, shutdown, occupied ports, saved port preferences, invalid configuration, stale state, shortcut validity, dialog save/cancel flows, and persistence. Server and launcher tests use temporary databases and leave your timetable alone.
 - `npm run build`: TypeScript check, production frontend and bundled Node backend for Electron.
-- `npm run test:desktop`: actual Electron renderer/menu/completion/persistence/shutdown checks with a temporary database/profile, plus navigation/link-policy checks. Requires a graphical Linux session (or an appropriate test display).
+- `npm run test:desktop`: actual Electron renderer/menu/default-filter/completion/undo/persistence/shutdown checks with a temporary database/profile, plus desktop-ID launching and navigation/link-policy checks. Requires a graphical Linux session (or an appropriate test display). On GNOME, `LEDGER_TEST_DESKTOP_SERVICE=1 npm run test:desktop` additionally launches through the normal user service context, exercising Ubuntu's taskbar sandbox permissions without inheriting a development tool's AppArmor profile.
 
 Removing a course removes its sessions and their completion history after confirmation. Editing term dates retains completion records. Recording links open the date-filtered Panopto list rather than identifying a particular video; university sign-in and recording availability are handled by Scientia/Panopto. Overnight sessions should be entered as separate same-day sessions.
 

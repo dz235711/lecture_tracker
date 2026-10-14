@@ -90,6 +90,7 @@ else {
       ]));
       window.once('ready-to-show', () => { if (process.env.LEDGER_DESKTOP_SMOKE !== '1') window.show(); });
       await window.loadURL(ledger.origin + '/');
+      if (process.connected) process.send({ type: 'ledger:ready' });
       if (process.env.LEDGER_DESKTOP_SMOKE === '1') console.log('Desktop renderer loaded');
       if (pendingView) { navigate(pendingView); pendingView = null; }
       if (process.env.LEDGER_DESKTOP_SMOKE === '1') {
