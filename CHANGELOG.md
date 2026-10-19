@@ -4,6 +4,10 @@ These entries describe the work completed in this conversation. Commits contain 
 
 ## Unreleased
 
+**19 October 2026 — simplify navigation:** remove the redundant Catch up sidebar tab and native menu/keyboard action, along with its unused navigation bridge route. Overview continues to open on full-term unfinished sessions. Update existing native navigation checks and setup documentation.
+
+Validation: TypeScript/frontend/backend build and the full real-Electron suite passed using temporary databases/profiles, including absent sidebar/native menu items, seven-session startup/reload/reopen, native/sidebar Overview navigation, completion/backup, normal desktop-service launch and shutdown. Git whitespace checks passed; the personal timetable/profile were not used or changed.
+
 **19 October 2026 — due sessions on Overview:** open on Unfinished across the full term, matching Catch up immediately instead of showing the current week's upcoming timetable. Use the same view for sidebar/native Overview navigation and example entry/exit; retain explicit Week, Upcoming, To do, All sessions and Completed browsing. Add a deterministic first-render/reopen/reload regression with seven past unfinished sessions, four information-theory entries, one remaining Quantum tutorial and five saved completions, alongside six upcoming slots in the current week. Saved completion records remain unchanged when browsing.
 
 Validation: model checks and all eleven API/browser/launcher tests passed; TypeScript/frontend/backend build passed. The full real-Electron suite passed save/reopen, taskbar launching through the normal desktop-service context, and the new seven-session case on first render, reload and reopen. Checked exact course counts/dates, saved Quantum completion, native/sidebar navigation, Catch up parity, separate week browsing, unchanged saved data and shutdown/port release. Visually reviewed the captured synthetic overview and checked Git whitespace. Early test-harness initialization failures were repaired and are not counted as passes. The real timetable/profile were not used for QA or changed.

@@ -83,7 +83,6 @@ else {
         { label: 'View', submenu: [
           { label: 'Overview', accelerator: 'CommandOrControl+1', click: () => navigate('overview') },
           { label: 'Courses & lectures', accelerator: 'CommandOrControl+2', click: () => navigate('schedule') },
-          { label: 'Catch up', accelerator: 'CommandOrControl+3', click: () => navigate('catchup') },
           { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'togglefullscreen' },
         ] },
         { label: 'Help', submenu: [{ label: 'About Lecture Tracker', click: () => { void dialog.showMessageBox(window, { title: 'Lecture Tracker', message: 'Lecture Tracker', detail: 'Your lectures, resources and progress, saved on this computer.\nClose the window or choose File → Quit to shut down the app.' }); } }] },

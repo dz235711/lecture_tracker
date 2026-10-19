@@ -30,8 +30,10 @@ export async function smokeTest({ app, window, ledger, root }) {
   assert.equal(await javascript(`getComputedStyle(document.querySelector('.page-heading .eyebrow')).display`), 'none');
   assert.equal(await javascript(`document.querySelector('.filter-tabs [aria-pressed="true"]').textContent.startsWith('Unfinished')`), true);
   assert.equal(await javascript(`document.querySelector('.scope-toggle .active').textContent`), 'Term');
-  assert.equal(await javascript(`document.querySelector('.complete-button.checked') === null`), true, 'Saved completed lectures must be hidden immediately on launch, before Catch up is clicked.');
+  assert.equal(await javascript(`document.querySelector('.complete-button.checked') === null`), true, 'Saved completed lectures must be hidden immediately on launch without navigating first.');
   const views = Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items;
+  assert.equal(views.some(item => item.label === 'Catch up'), false);
+  assert.equal(await javascript(`Array.from(document.querySelectorAll('nav button')).some(button => button.textContent.includes('Catch up'))`), false);
   if (process.env.LEDGER_DESKTOP_SMOKE_PHASE?.startsWith('overview')) {
     const { overviewSmokeTest } = await import('./overview-smoke.mjs');
     await overviewSmokeTest({ window, ledger, views, javascript, until });
@@ -96,7 +98,7 @@ export async function smokeTest({ app, window, ledger, root }) {
   await javascript(`Array.from(document.querySelectorAll('.scope-toggle button')).find(button => button.textContent === 'Term').click()`);
   // Use the full term so this test includes both past and future occurrences.
   await until(`document.querySelector('.lecture-list')?.textContent.includes('Upcoming')`);
-  views.find(item => item.label === 'Catch up').click();
+  views.find(item => item.label === 'Overview').click();
   await until(`document.querySelector('.filter-tabs [aria-pressed="true"]').textContent.startsWith('Unfinished')`);
   assert.equal(await javascript(`document.querySelector('.complete-button.checked') === null && !document.querySelector('.lecture-list').textContent.includes('Upcoming')`), true);
   await chooseFilter('To do');

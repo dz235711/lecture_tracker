@@ -2,7 +2,7 @@ declare global {
   interface Window {
     lectureLedgerDesktop?: {
       quit(): void;
-      onNavigate(callback: (view: 'overview' | 'schedule' | 'settings' | 'catchup') => void): () => void;
+      onNavigate(callback: (view: 'overview' | 'schedule' | 'settings') => void): () => void;
     };
   }
 }

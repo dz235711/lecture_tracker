@@ -6,13 +6,13 @@ A lecture and tutorial tracker that runs on your computer. Enter a term and one 
 
 Double-click **Lecture Tracker** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Tracker** to shut it down. Opening it again focuses the existing window.
 
-Overview opens on **Unfinished** across the **Term**, showing every past session still needing completion, including earlier weeks. It starts with the same list and count as **Catch up**. Completing a session removes it from that view immediately. Returning through Overview or its native menu restores this due-session view.
+Overview opens on **Unfinished** across the **Term**, showing every past session still needing completion, including earlier weeks. Completing a session removes it from that view immediately. Returning through Overview or its native menu restores this due-session view. Overview replaces the former Catch up navigation item.
 
 Choose **Completed** to review or undo completions, or **All sessions** to see everything. **To do** combines unfinished and upcoming sessions; **Week** lets you browse a particular week's timetable. Each weekly occurrence has its own completion record, so completing an earlier lecture does not complete next week's lecture.
 
 Desktop mode keeps your existing timetable at `data/lecture-ledger.sqlite` in this checkout. It automatically selects an available internal port; there is no browser address or port setting to manage. Materials and recordings open in your usual browser so university sign-in works normally.
 
-The window has a compact app layout and native File, Edit, View and Help menus. **Ctrl+1/2/3** opens Overview, Courses & lectures and Catch up; **Ctrl+,** opens Term & settings; **Ctrl+Q** quits. Backup export uses a native Save dialog, and restore uses a file chooser. Current saves finish before the database closes.
+The window has a compact app layout and native File, Edit, View and Help menus. **Ctrl+1/2** opens Overview and Courses & lectures; **Ctrl+,** opens Term & settings; **Ctrl+Q** quits. Backup export uses a native Save dialog, and restore uses a file chooser. Current saves finish before the database closes.
 
 From this folder, `./open.sh`, `./start.sh` or `npm start` opens the desktop app; `./stop.sh` or `npm run stop` quits it. The shell scripts select Node.js 24.15 or newer from PATH or the runtime bundled on this computer. `LEDGER_NODE_BIN` can select a particular Node executable.
 

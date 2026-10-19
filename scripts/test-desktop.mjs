@@ -79,7 +79,7 @@ try {
     assert.equal(result.completed, 5); assert.equal(result.rows, 7);
     await assert.rejects(fetch(result.origin));
     store = openStore(overviewDatabase); assert.deepEqual(store.load().data, overviewTestPlanner); store.close(); store = null;
-    console.log(`Passed ${phase}: seven due sessions, four information-theory rows, saved Quantum completion, Catch up parity, week browsing and reload without changing data.`);
+    console.log(`Passed ${phase}: seven due sessions, four information-theory rows, saved Quantum completion, Overview navigation, week browsing and reload without changing data.`);
   }
   console.log('Desktop screenshots: ' + folder);
 } catch (error) { await rm(folder, { recursive: true, force: true }); throw error; }

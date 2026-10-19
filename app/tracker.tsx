@@ -101,7 +101,7 @@ export default function Tracker() {
   }
   useEffect(() => { void load(); }, []);
   useEffect(() => desktop?.onNavigate(view => {
-    if (view === 'overview' || view === 'catchup') showUnfinished();
+    if (view === 'overview') showUnfinished();
     else setView(view);
   }), []);
   useEffect(() => {
@@ -217,7 +217,6 @@ export default function Tracker() {
       <nav aria-label="Main navigation">
         <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={showUnfinished}><LayoutDashboard size={18} />Overview</button>
         <button className={view === 'schedule' ? 'nav-item active' : 'nav-item'} onClick={() => setView('schedule')}><BookOpen size={18} />Courses & lectures</button>
-        <button className="nav-item" onClick={showUnfinished}><CircleDashed size={18} />Catch up{counts.unfinished > 0 && <span className="nav-count">{counts.unfinished}</span>}</button>
       </nav>
       {active.term && <div className="sidebar-term"><span className="eyebrow">CURRENT TERM</span><strong>{active.term.name}</strong><span>{dateLabel(active.term.start)} — {dateLabel(active.term.end, { day: 'numeric', month: 'short', year: 'numeric' })}</span><div className="term-track"><span style={{ width: `${Math.max(0, Math.min(100, (Date.parse(today) - Date.parse(active.term.start)) / (termDays * 86400000) * 100))}%` }} /></div><span>{today < active.term.start ? 'Your term starts soon' : today > active.term.end ? 'Term finished' : `Week ${Math.floor((Date.parse(today) - Date.parse(active.term.start)) / (7 * 86400000)) + 1} of ${termWeeks}`}</span></div>}
       <div className="sidebar-bottom">{!desktop && <div className="small-note"><Sparkles size={20} /><p>One lecture at a time.<br /><strong>You’ve got this.</strong></p></div>}<button className={view === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setView('settings')}><Settings2 size={18} />Term & settings</button>{desktop && <button className="nav-item quit-app" disabled={saving} onClick={() => desktop?.quit()}><Power size={18} />Quit app</button>}<div className="save-state" role="status">{loading || saving ? <Loader2 size={15} className="spin" /> : <CloudCheck size={15} />}<span>{example ? 'Exploring an example' : loading ? 'Loading your timetable' : saving ? 'Saving your progress…' : loadError ? 'Could not connect' : error ? 'Save needs attention' : 'Saved on this computer'}</span></div></div>

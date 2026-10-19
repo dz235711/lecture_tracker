@@ -40,7 +40,6 @@ export async function overviewSmokeTest({ window, ledger, views, javascript, unt
   const snapshot = () => javascript(`({
     scope: document.querySelector('.scope-toggle .active').textContent,
     filter: document.querySelector('.filter-tabs [aria-pressed="true"]').textContent,
-    sidebar: document.querySelector('.nav-count').textContent,
     unfinished: parseInt(document.querySelector('.stat-card.unfinished .stat-value').textContent),
     groups: Array.from(document.querySelectorAll('.course-occurrence-group')).map(group => ({
       course: group.querySelector('h3').textContent,
@@ -53,7 +52,7 @@ export async function overviewSmokeTest({ window, ledger, views, javascript, unt
   })`);
   const initial = await snapshot();
   assert.equal(initial.scope, 'Term'); assert.equal(initial.filter, 'Unfinished7');
-  assert.equal(initial.rows, 7); assert.equal(initial.sidebar, '7'); assert.equal(initial.unfinished, 7);
+  assert.equal(initial.rows, 7); assert.equal(initial.unfinished, 7);
   assert.equal(initial.completed, 0); assert.equal(initial.upcoming, 0);
   assert.deepEqual(initial.groups.map(group => [group.course, group.rows]), [
     ['Quantum computing', 1], ['Statistical information theory', 4], ['Reinforcement learning', 2],
@@ -62,8 +61,8 @@ export async function overviewSmokeTest({ window, ledger, views, javascript, unt
   assert.deepEqual(initial.groups[1].dates, ['Tuesday, 6 October 2026', 'Friday, 9 October 2026', 'Tuesday, 13 October 2026', 'Friday, 16 October 2026']);
   await javascript(`new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))`);
   await writeFile(process.env.LEDGER_DESKTOP_SCREENSHOT, (await window.webContents.capturePage()).toPNG());
-  views.find(item => item.label === 'Catch up').click();
-  assert.deepEqual(await snapshot(), initial, 'Catch up must not be needed to correct the first screen.');
+  views.find(item => item.label === 'Overview').click();
+  assert.deepEqual(await snapshot(), initial, 'Overview navigation must match the first screen.');
   await javascript(`Array.from(document.querySelectorAll('.filter-tabs button')).find(button => button.textContent.startsWith('Completed')).click()`);
   await until(`document.querySelectorAll('.lecture-row.completed').length === 5`);
   assert.equal(await javascript(`Array.from(document.querySelectorAll('.course-occurrence-group')).find(group => group.querySelector('h3').textContent === 'Quantum computing').querySelector('button[aria-label*="12 Oct"]').getAttribute('aria-pressed')`), 'true');
