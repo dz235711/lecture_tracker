@@ -6,7 +6,9 @@ A lecture and tutorial tracker that runs on your computer. Enter a term and one 
 
 Double-click **Lecture Tracker** on your desktop or in your applications menu. It opens in its own Electron window. Close the window, use the sidebar **Quit app** button, or choose **File → Quit Lecture Tracker** to shut it down. Opening it again focuses the existing window.
 
-Overview opens on **To do**, showing unfinished and upcoming sessions while hiding completed ones from the first load. Completing a session removes it from that view immediately. Choose **Completed** to review or undo completions, or **All sessions** to see everything. **Catch up** shows only unfinished sessions across the term.
+Overview opens on **Unfinished** across the **Term**, showing every past session still needing completion, including earlier weeks. It starts with the same list and count as **Catch up**. Completing a session removes it from that view immediately. Returning through Overview or its native menu restores this due-session view.
+
+Choose **Completed** to review or undo completions, or **All sessions** to see everything. **To do** combines unfinished and upcoming sessions; **Week** lets you browse a particular week's timetable. Each weekly occurrence has its own completion record, so completing an earlier lecture does not complete next week's lecture.
 
 Desktop mode keeps your existing timetable at `data/lecture-ledger.sqlite` in this checkout. It automatically selects an available internal port; there is no browser address or port setting to manage. Materials and recordings open in your usual browser so university sign-in works normally.
 

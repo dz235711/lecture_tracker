@@ -28,9 +28,15 @@ export async function smokeTest({ app, window, ledger, root }) {
   }
   assert.equal(await javascript(`document.querySelector('.page-footer') === null`), true);
   assert.equal(await javascript(`getComputedStyle(document.querySelector('.page-heading .eyebrow')).display`), 'none');
-  assert.equal(await javascript(`document.querySelector('.filter-tabs [aria-pressed="true"]').textContent.startsWith('To do')`), true);
+  assert.equal(await javascript(`document.querySelector('.filter-tabs [aria-pressed="true"]').textContent.startsWith('Unfinished')`), true);
+  assert.equal(await javascript(`document.querySelector('.scope-toggle .active').textContent`), 'Term');
   assert.equal(await javascript(`document.querySelector('.complete-button.checked') === null`), true, 'Saved completed lectures must be hidden immediately on launch, before Catch up is clicked.');
   const views = Menu.getApplicationMenu().items.find(item => item.label === 'View').submenu.items;
+  if (process.env.LEDGER_DESKTOP_SMOKE_PHASE?.startsWith('overview')) {
+    const { overviewSmokeTest } = await import('./overview-smoke.mjs');
+    await overviewSmokeTest({ window, ledger, views, javascript, until });
+    return;
+  }
   views.find(item => item.label === 'Courses & lectures').click();
   await until(`document.querySelector('h1')?.textContent === 'Courses & lectures'`);
   assert.equal(await javascript(`document.body.textContent.includes('Quantum gates & circuits') || document.body.textContent.includes('Problem class')`), false);

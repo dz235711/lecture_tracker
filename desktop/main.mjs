@@ -89,6 +89,10 @@ else {
         { label: 'Help', submenu: [{ label: 'About Lecture Tracker', click: () => { void dialog.showMessageBox(window, { title: 'Lecture Tracker', message: 'Lecture Tracker', detail: 'Your lectures, resources and progress, saved on this computer.\nClose the window or choose File → Quit to shut down the app.' }); } }] },
       ]));
       window.once('ready-to-show', () => { if (process.env.LEDGER_DESKTOP_SMOKE !== '1') window.show(); });
+      if (process.env.LEDGER_DESKTOP_SMOKE === '1' && process.env.LEDGER_DESKTOP_SMOKE_PHASE?.startsWith('overview')) {
+        const { prepareOverviewTest } = await import('./overview-smoke.mjs');
+        await prepareOverviewTest(window);
+      }
       await window.loadURL(ledger.origin + '/');
       if (process.connected) process.send({ type: 'ledger:ready' });
       if (process.env.LEDGER_DESKTOP_SMOKE === '1') console.log('Desktop renderer loaded');

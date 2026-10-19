@@ -56,8 +56,8 @@ export default function Tracker() {
   const [example, setExample] = useState<Planner | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [view, setView] = useState<View>('overview');
-  const [scope, setScope] = useState<'week' | 'term'>('week');
-  const [filter, setFilter] = useState<Filter>('todo');
+  const [scope, setScope] = useState<'week' | 'term'>('term');
+  const [filter, setFilter] = useState<Filter>('unfinished');
   const [search, setSearch] = useState('');
   const [week, setWeek] = useState('');
   const [termEditor, setTermEditor] = useState<Term | null>(null);
@@ -101,7 +101,7 @@ export default function Tracker() {
   }
   useEffect(() => { void load(); }, []);
   useEffect(() => desktop?.onNavigate(view => {
-    if (view === 'catchup') { setView('overview'); setScope('term'); setFilter('unfinished'); setSearch(''); }
+    if (view === 'overview' || view === 'catchup') showUnfinished();
     else setView(view);
   }), []);
   useEffect(() => {
@@ -206,8 +206,8 @@ export default function Tracker() {
     } catch (err) { setError(err instanceof Error ? err.message : 'This backup could not be opened.'); }
     finally { if (fileRef.current) fileRef.current.value = ''; }
   }
-  function showUnfinished() { setView('overview'); setScope('term'); setFilter('unfinished'); setSearch(''); }
-  function startExample() { setExample(demoPlanner(now, timezone)); setView('overview'); setWeek(''); setScope('week'); setFilter('todo'); }
+  function showUnfinished() { setView('overview'); setScope('term'); setFilter('unfinished'); setSearch(''); setWeek(''); }
+  function startExample() { setExample(demoPlanner(now, timezone)); showUnfinished(); }
   const statIcons = { unfinished: CircleDashed, upcoming: Clock3, completed: CheckCheck };
 
   return <div className={`app-shell${desktop ? ' desktop-app' : ''}`}>
@@ -215,7 +215,7 @@ export default function Tracker() {
       <a className="brand" href="/" aria-label="Lecture Tracker home"><span className="brand-icon"><BookOpen size={25} strokeWidth={1.7} /></span><span>lecture<span className="brand-second">tracker<span className="brand-dot">.</span></span></span></a>
       <div className="nav-label">YOUR STUDY SPACE</div>
       <nav aria-label="Main navigation">
-        <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><LayoutDashboard size={18} />Overview</button>
+        <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={showUnfinished}><LayoutDashboard size={18} />Overview</button>
         <button className={view === 'schedule' ? 'nav-item active' : 'nav-item'} onClick={() => setView('schedule')}><BookOpen size={18} />Courses & lectures</button>
         <button className="nav-item" onClick={showUnfinished}><CircleDashed size={18} />Catch up{counts.unfinished > 0 && <span className="nav-count">{counts.unfinished}</span>}</button>
       </nav>
@@ -225,7 +225,7 @@ export default function Tracker() {
     <div className="main-shell">
       <header className="topbar"><div className="topbar-label"><GraduationCap size={18} /><span>{desktop ? 'Lecture Tracker' : 'A little progress, every week.'}</span></div><div className="topbar-date"><span className="live-dot" />{dateLabel(today, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div></header>
       <main>
-        {example && <div className="example-banner"><span><Sparkles size={16} />You’re exploring an example. Changes here aren’t saved on this computer.</span><button onClick={() => { setExample(null); setWeek(''); setScope('week'); setFilter('todo'); }}>Exit example <X size={15} /></button></div>}
+        {example && <div className="example-banner"><span><Sparkles size={16} />You’re exploring an example. Changes here aren’t saved on this computer.</span><button onClick={() => { setExample(null); showUnfinished(); }}>Exit example <X size={15} /></button></div>}
         {error && <div className="alert" role="alert"><span>{error}</span><button className="text-button" onClick={() => { void load(); }}>Reload saved data</button><button className="icon-button" onClick={() => setError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
         <div className="page-heading"><div><div className="eyebrow">{view === 'overview' ? 'THE BIG PICTURE' : view === 'schedule' ? 'YOUR COURSES, TOGETHER' : 'MAKE IT YOURS'}</div><h1>{desktop ? view === 'overview' ? 'Overview' : view === 'schedule' ? 'Courses & lectures' : 'Term & settings' : view === 'overview' ? 'Your week, at a glance.' : view === 'schedule' ? 'Your courses & lectures.' : 'Your term & settings.'}</h1><p>{view === 'overview' ? 'Know what’s ahead, see what’s done, and pick up where you left off.' : view === 'schedule' ? 'Shared resources, a colour for each course, and sessions you can make your own.' : 'A few details to keep your study space running smoothly.'}</p></div>{view !== 'settings' && <div className="heading-actions">{view === 'schedule' && <button className="button secondary" disabled={busy || active.lectures.length >= 100} onClick={() => editLecture()}><Plus size={16} />Add session</button>}<button className="button primary" disabled={busy || (view === 'schedule' ? active.courses.length >= 100 : active.lectures.length >= 100)} onClick={() => view === 'schedule' ? editCourse() : editLecture()}><Plus size={18} />{view === 'schedule' ? 'Add course' : 'Add lecture'}</button></div>}</div>
         {loading ? <div className="loading-panel"><Loader2 size={26} className="spin" /><p>Opening your study space…</p></div> : loadError ? <div className="empty-panel"><CloudCheck size={32} /><h2>Let’s reconnect.</h2><p>{loadError}</p><button className="button primary" onClick={() => { void load(); }}>Try again</button></div> : <>

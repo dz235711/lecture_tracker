@@ -11,6 +11,7 @@ import { projectRoot as root } from '../server/config.mjs';
 import { isAppPage, isUniversityLink } from '../desktop/policy.mjs';
 import { desktopEntry } from './app.mjs';
 import { addDays, dateInZone, monday } from '../lib/model.ts';
+import { overviewTestPlanner } from '../desktop/overview-smoke.mjs';
 
 for (const link of ['https://scientia.doc.ic.ac.uk/2627/modules/70021/materials', 'https://imperial.cloud.panopto.eu/Panopto/Pages/Sessions/List.aspx']) assert.equal(isUniversityLink(link), true);
 for (const link of ['javascript:alert(1)', 'file:///etc/passwd', 'http://scientia.doc.ic.ac.uk/', 'https://scientia.doc.ic.ac.uk.example.com/', 'https://user@scientia.doc.ic.ac.uk/', 'https://scientia.doc.ic.ac.uk:444/', 'https://example.com']) assert.equal(isUniversityLink(link), false);
@@ -66,6 +67,20 @@ try {
   }
   await assert.rejects(fetch(result.origin));
   console.log('Passed desktop-ID launcher: pinned-icon entry, automatic build, native window, initial filter and clean shutdown with isolated data.');
+  const overviewDatabase = join(folder, 'overview.sqlite');
+  store = openStore(overviewDatabase); store.save(overviewTestPlanner, 0); store.close(); store = null;
+  for (const phase of ['overview', 'overview-reopen']) {
+    const env = { ...process.env, LEDGER_DB_PATH: overviewDatabase, LEDGER_DESKTOP_PROFILE: join(folder, 'overview-profile'), LEDGER_DESKTOP_SMOKE: '1', LEDGER_DESKTOP_SMOKE_PHASE: phase, LEDGER_DESKTOP_SCREENSHOT: join(folder, `${phase}.png`) };
+    delete env.ELECTRON_RUN_AS_NODE;
+    const { stdout, stderr } = await promisify(execFile)(electron, [root], { cwd: root, env, timeout: 45_000, maxBuffer: 1_000_000 });
+    const marker = stdout.split('\n').find(line => line.startsWith('LEDGER_DESKTOP_SMOKE_RESULT '));
+    assert.ok(marker, 'The due-session startup checks must finish.\n' + stdout + '\n' + stderr);
+    const result = JSON.parse(marker.slice('LEDGER_DESKTOP_SMOKE_RESULT '.length));
+    assert.equal(result.completed, 5); assert.equal(result.rows, 7);
+    await assert.rejects(fetch(result.origin));
+    store = openStore(overviewDatabase); assert.deepEqual(store.load().data, overviewTestPlanner); store.close(); store = null;
+    console.log(`Passed ${phase}: seven due sessions, four information-theory rows, saved Quantum completion, Catch up parity, week browsing and reload without changing data.`);
+  }
   console.log('Desktop screenshots: ' + folder);
 } catch (error) { await rm(folder, { recursive: true, force: true }); throw error; }
 finally { store?.close(); }
